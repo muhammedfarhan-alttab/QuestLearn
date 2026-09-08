@@ -250,12 +250,19 @@ export const COURSE_DIAGNOSTIC_BANK: Record<string, DiagnosticQuestion[]> = {
   ]
 };
 
+export interface DiagnosticResult {
+  courseId: string;
+  overallMastery: number;
+  diagnosedGaps: string[];
+  scores?: Record<string, number>;
+}
+
 export default function DiagnosticQuizView({
   course = ACADEMIC_COURSES[0],
   onFinishDiagnostic
 }: {
   course?: CourseData;
-  onFinishDiagnostic: (results: { courseId: string; overallMastery: number; diagnosedGaps: string[] }) => void;
+  onFinishDiagnostic: (results: DiagnosticResult) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -266,6 +273,7 @@ export default function DiagnosticQuizView({
   const [confidenceProb, setConfidenceProb] = useState(0.45);
   const [bayesianUpdateLog, setBayesianUpdateLog] = useState<string>('Prior uncalibrated. Initializing diagnostic belief state.');
   const [detectedMisconceptions, setDetectedMisconceptions] = useState<string[]>([]);
+  const [conceptScores, setConceptScores] = useState<Record<string, number>>({});
 
   const questions = COURSE_DIAGNOSTIC_BANK[course.id] || COURSE_DIAGNOSTIC_BANK['course-mechanics'];
   const currentQ = questions[currentIndex] || questions[0];
@@ -276,6 +284,8 @@ export default function DiagnosticQuizView({
     setIsAnswered(true);
 
     const isCorrect = idx === currentQ.correctIndex;
+    const scoreVal = isCorrect ? 100 : Math.max(20, Math.round(masteryProb * 100));
+    setConceptScores(prev => ({ ...prev, [currentQ.concept]: scoreVal }));
 
     if (isCorrect) {
       // Bayesian positive update
@@ -311,10 +321,15 @@ export default function DiagnosticQuizView({
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
+      const finalScores = {
+        ...conceptScores,
+        [currentQ.concept]: (selectedOption === currentQ.correctIndex) ? 100 : 25
+      };
       onFinishDiagnostic({
         courseId: course.id,
         overallMastery: masteryProb,
-        diagnosedGaps: detectedMisconceptions
+        diagnosedGaps: detectedMisconceptions,
+        scores: finalScores
       });
     }
   };

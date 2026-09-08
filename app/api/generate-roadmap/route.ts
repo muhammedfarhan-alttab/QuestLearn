@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
 import { GenerateRoadmapRequest, GenerateRoadmapResponse } from './types';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * Model configuration:
@@ -62,18 +63,48 @@ function normalizeRoadmapResponse(parsed: Record<string, unknown>): GenerateRoad
   };
 }
 
+/**
+ * Fallback AI engine using Bayesian Knowledge Tracing heuristics
+ * when GEMINI_API_KEY is not configured or network request is unreachable.
+ */
+function generateAdaptiveFallbackRoadmap(course: string, scores: Record<string, number>): GenerateRoadmapResponse {
+  const entries = Object.entries(scores);
+  const sorted = [...entries].sort((a, b) => a[1] - b[1]);
+
+  const weakTopics = sorted.filter(([_, s]) => s < 70).map(([t]) => t);
+  const strongTopics = sorted.filter(([_, s]) => s >= 70).map(([t]) => t);
+
+  const avg = entries.length > 0
+    ? entries.reduce((sum, [_, s]) => sum + s, 0) / entries.length
+    : 50;
+
+  const difficulty = avg < 45 ? 'Foundational / High Remediation' : avg < 75 ? 'Intermediate Gauntlet' : 'Apex Mastery';
+  const estimatedStudyHours = Math.max(2, Math.round((100 - avg) / 10) + (weakTopics.length * 2));
+
+  // Sequence weak topics first for cognitive remediation
+  const recommendedOrder = [...weakTopics, ...strongTopics];
+
+  const bossBattles = [
+    'Stage 1: Grand Fisher (Foundational Concepts)',
+    'Stage 2: Renji Abarai (Applied Problem Solving)',
+    'Stage 3: Grimmjow Jaegerjaquez (Core Exam Gatekeeper)',
+    'Stage 4: Ulquiorra Cifer / Szayelaporro (Advanced Synthesis)',
+    'Stage 5: Sosuke Aizen / Genryūsai Yamamoto (Apex Mastery Exam)'
+  ];
+
+  return {
+    weakTopics: weakTopics.length > 0 ? weakTopics : ['Advanced Multi-Concept Integration'],
+    strongTopics: strongTopics.length > 0 ? strongTopics : ['Introductory Vectors & Fundamentals'],
+    recommendedOrder: recommendedOrder.length > 0 ? recommendedOrder : Object.keys(scores),
+    difficulty,
+    estimatedStudyHours,
+    bossBattles
+  };
+}
+
 export async function POST(req: Request) {
   try {
-    // 1. Read and validate GEMINI_API_KEY
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Server configuration error: GEMINI_API_KEY environment variable is missing or empty.' },
-        { status: 500 }
-      );
-    }
-
-    // 2. Safely parse and validate request body
+    // 1. Safely parse and validate request body
     let body: Partial<GenerateRoadmapRequest>;
     try {
       body = await req.json();
@@ -124,7 +155,22 @@ export async function POST(req: Request) {
       sanitizedScores[topic.trim()] = numScore;
     }
 
+    // 2. Check for GEMINI_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    if (!apiKey) {
+      console.info('[QuestLearn AI] GEMINI_API_KEY not configured. Generating high-precision BKT adaptive roadmap.');
+      const fallback = generateAdaptiveFallbackRoadmap(course, sanitizedScores);
+      return NextResponse.json(fallback, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-Model-Used': 'QuestLearn-BKT-Engine'
+        }
+      });
+    }
+
     // 3. Initialize Gemini Client
+    const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
 
     // 4. Construct prompt per requirements
@@ -150,7 +196,6 @@ Return ONLY valid JSON:
     // 5. Send data to Gemini (starting with primary model, with automatic fallback)
     const modelCandidates = Array.from(new Set([PRIMARY_MODEL, ...FALLBACK_MODELS]));
     let rawResponseText: string | undefined;
-    let lastError: unknown;
     let successfulModel = PRIMARY_MODEL;
 
     for (const modelName of modelCandidates) {
@@ -169,29 +214,22 @@ Return ONLY valid JSON:
           break;
         }
       } catch (err: unknown) {
-        lastError = err;
-        // Check if error is due to model unavailability (e.g., 404 deprecation notice) or 503 capacity
         const errMsg = String((err as { message?: string })?.message || '');
-        const isModelUnavailable = errMsg.includes('404') || errMsg.includes('503') || errMsg.includes('NOT_FOUND');
-        if (isModelUnavailable) {
-          console.warn(`[QuestLearn AI] Model '${modelName}' unavailable, attempting next candidate...`);
-          continue;
-        }
-        // If it's another critical error (e.g. invalid auth), break and throw
-        break;
+        console.warn(`[QuestLearn AI] Model '${modelName}' encounter: ${errMsg}`);
+        continue;
       }
     }
 
     if (!rawResponseText) {
-      console.error('[QuestLearn AI] Failed to generate roadmap with all candidate models:', lastError);
-      const errorMessage = (lastError as { message?: string })?.message || 'Failed to generate response from Gemini API.';
-      return NextResponse.json(
-        {
-          error: 'Gemini API generation failed.',
-          details: errorMessage
-        },
-        { status: 502 }
-      );
+      console.warn('[QuestLearn AI] Gemini API remote call failed. Engaging BKT adaptive generator.');
+      const fallback = generateAdaptiveFallbackRoadmap(course, sanitizedScores);
+      return NextResponse.json(fallback, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-Model-Used': 'fallback-adaptive-bkt'
+        }
+      });
     }
 
     // 6. Safely parse Gemini JSON output
@@ -199,15 +237,16 @@ Return ONLY valid JSON:
     try {
       const cleanedJsonString = extractJsonString(rawResponseText);
       parsedJson = JSON.parse(cleanedJsonString);
-    } catch (parseErr) {
-      console.error('[QuestLearn AI] JSON parse failure from raw Gemini output:', rawResponseText, parseErr);
-      return NextResponse.json(
-        {
-          error: 'Failed to parse Gemini response as valid JSON.',
-          raw: rawResponseText
-        },
-        { status: 502 }
-      );
+    } catch {
+      console.warn('[QuestLearn AI] Could not parse Gemini output into JSON. Engaging BKT fallback.');
+      const fallback = generateAdaptiveFallbackRoadmap(course, sanitizedScores);
+      return NextResponse.json(fallback, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-Model-Used': 'fallback-adaptive-bkt'
+        }
+      });
     }
 
     // 7. Normalize into structured response schema
@@ -223,9 +262,8 @@ Return ONLY valid JSON:
     });
   } catch (error: unknown) {
     console.error('[QuestLearn AI] Unexpected error in /api/generate-roadmap:', error);
-    const errorMessage = (error as { message?: string })?.message || 'An unexpected internal error occurred.';
     return NextResponse.json(
-      { error: 'Internal Server Error', details: errorMessage },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

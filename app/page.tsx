@@ -1290,6 +1290,13 @@ export default function GameArena() {
     mastery: number;
     stages: WorldStageNode[];
     diagnosedGaps?: string[];
+    aiModelUsed?: string;
+    aiRoadmapMeta?: {
+      difficulty?: string;
+      estimatedStudyHours?: number;
+      weakTopics?: string[];
+      strongTopics?: string[];
+    } | null;
   }>>({});
   const [activeTestStage, setActiveTestStage] = useState<WorldStageNode | null>(null);
 
@@ -1567,20 +1574,83 @@ export default function GameArena() {
     }
   };
 
-  // Diagnostic completion: unlock course, build personalized stages, navigate to worldmap
-  const handleFinishDiagnostic = (results: { courseId: string; overallMastery: number; diagnosedGaps: string[] }) => {
-    const personalizedStages = buildPersonalizedStages(results.courseId, results.overallMastery, results.diagnosedGaps);
+  // Diagnostic completion: unlock course, request AI generated roadmap, build personalized stages, navigate to worldmap
+  const handleFinishDiagnostic = async (results: { 
+    courseId: string; 
+    overallMastery: number; 
+    diagnosedGaps: string[];
+    scores?: Record<string, number>;
+  }) => {
+    const foundCourse = ACADEMIC_COURSES.find(c => c.id === results.courseId) || selectedCourse;
+    if (foundCourse) setSelectedCourse(foundCourse);
+
+    let personalizedStages = buildPersonalizedStages(results.courseId, results.overallMastery, results.diagnosedGaps);
+    let aiModelUsed = 'QuestLearn AI';
+    let aiRoadmapMeta: {
+      difficulty?: string;
+      estimatedStudyHours?: number;
+      weakTopics?: string[];
+      strongTopics?: string[];
+    } | null = null;
+
+    try {
+      const scoresPayload = results.scores && Object.keys(results.scores).length > 0
+        ? results.scores
+        : {
+            'Foundational Vectors & Displacement': Math.round(results.overallMastery * 100),
+            'Newtonian Dynamics & Inertia': Math.max(20, Math.round(results.overallMastery * 90)),
+            'Work-Energy Theorem & Conservation': Math.max(15, Math.round(results.overallMastery * 80)),
+            'Momentum & High-Speed Impacts': Math.max(10, Math.round(results.overallMastery * 70))
+          };
+
+      const res = await fetch('/api/generate-roadmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course: foundCourse.title,
+          scores: scoresPayload
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        aiModelUsed = res.headers.get('X-Model-Used') || 'Google Gemini AI';
+        aiRoadmapMeta = {
+          difficulty: data.difficulty,
+          estimatedStudyHours: data.estimatedStudyHours,
+          weakTopics: data.weakTopics,
+          strongTopics: data.strongTopics
+        };
+
+        if (Array.isArray(data.weakTopics) && data.weakTopics.length > 0) {
+          personalizedStages = personalizedStages.map((stage, idx) => {
+            const matchesWeakness = data.weakTopics.some((weak: string) =>
+              stage.conceptFocus.toLowerCase().includes(weak.toLowerCase()) ||
+              stage.name.toLowerCase().includes(weak.toLowerCase())
+            );
+            return {
+              ...stage,
+              status: (matchesWeakness || idx === 0) ? 'remediation_priority' : stage.status
+            };
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('[QuestLearn AI] Roadmap fetch fallback engaged:', err);
+    }
+
     setUnlockedCourses(prev => ({
       ...prev,
       [results.courseId]: {
         diagnosticCompleted: true,
         mastery: results.overallMastery,
         stages: personalizedStages,
-        diagnosedGaps: results.diagnosedGaps
+        diagnosedGaps: results.diagnosedGaps,
+        aiModelUsed,
+        aiRoadmapMeta
       }
     }));
-    const foundCourse = ACADEMIC_COURSES.find(c => c.id === results.courseId);
-    if (foundCourse) setSelectedCourse(foundCourse);
+
     setActiveTestStage(null);
     setGameState('title');
     setMainTab('worldmap');
@@ -2074,6 +2144,8 @@ export default function GameArena() {
                 setInspectedRemembrance(bossToInspect);
                 setShowRemembranceModal(true);
               }}
+              aiModelUsed={unlockedCourses[selectedCourse.id]?.aiModelUsed}
+              aiRoadmapMeta={unlockedCourses[selectedCourse.id]?.aiRoadmapMeta}
             />
           </main>
           <ProfileInspectionModal

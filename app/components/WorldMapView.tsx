@@ -19,7 +19,8 @@ import {
   Play,
   RotateCcw,
   BookOpen,
-  ChevronLeft
+  ChevronLeft,
+  BrainCircuit
 } from 'lucide-react';
 import { CourseData, ACADEMIC_COURSES } from './CoursesView';
 import LectureNotesModal from './LectureNotesModal';
@@ -141,7 +142,9 @@ export default function WorldMapView({
   onRetakeDiagnostic,
   onSwitchCourse,
   onClaimGeo,
-  onInspectBoss
+  onInspectBoss,
+  aiModelUsed,
+  aiRoadmapMeta
 }: {
   course?: CourseData;
   isUnlocked?: boolean;
@@ -152,6 +155,13 @@ export default function WorldMapView({
   onSwitchCourse: () => void;
   onClaimGeo?: (amount: number) => void;
   onInspectBoss?: (boss: BleachVillainConfig) => void;
+  aiModelUsed?: string;
+  aiRoadmapMeta?: {
+    difficulty?: string;
+    estimatedStudyHours?: number;
+    weakTopics?: string[];
+    strongTopics?: string[];
+  } | null;
 }) {
   const [selectedStage, setSelectedStage] = useState<WorldStageNode>(stages[0]);
   const [isLectureModalOpen, setIsLectureModalOpen] = useState(false);
@@ -247,11 +257,17 @@ export default function WorldMapView({
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center space-x-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="px-2.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase flex items-center space-x-1">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                 <span>AI Diagnostic Calibrated Path</span>
               </span>
+              {aiModelUsed && (
+                <span className="px-2.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-black uppercase flex items-center space-x-1 shadow-sm">
+                  <BrainCircuit className="w-3 h-3 text-indigo-400" />
+                  <span>Roadmap Engine: {aiModelUsed}</span>
+                </span>
+              )}
               <span className="text-slate-400 text-xs">•</span>
               <span className="text-amber-400 text-xs font-bold">{course.title}</span>
             </div>
@@ -295,6 +311,18 @@ export default function WorldMapView({
             <span className="text-slate-500 uppercase text-[10px] block">Course Boss Exam</span>
             <span className="text-rose-400 font-bold">{course.bossName}</span>
           </div>
+          {aiRoadmapMeta?.estimatedStudyHours && (
+            <div>
+              <span className="text-slate-500 uppercase text-[10px] block">Est. Study Hours</span>
+              <span className="text-cyan-300 font-bold">⏱️ {aiRoadmapMeta.estimatedStudyHours} Hours</span>
+            </div>
+          )}
+          {aiRoadmapMeta?.difficulty && (
+            <div>
+              <span className="text-slate-500 uppercase text-[10px] block">AI Assessed Tier</span>
+              <span className="text-amber-400 font-bold">⚡ {aiRoadmapMeta.difficulty}</span>
+            </div>
+          )}
         </div>
       </div>
 
