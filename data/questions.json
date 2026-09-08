@@ -1,0 +1,158 @@
+{
+  "easy": [
+    {
+      "id": "e1",
+      "quest": "TRIAL I // Forgotten Crossroads",
+      "question": "What does CPU stand for in the ancient archives of computer architecture?",
+      "options": ["Central Processing Unit", "Computer Power Unit", "Central Peripheral Unit", "Control Program Utility"],
+      "answer": 0,
+      "explanation": "The CPU acts as the central consciousness, executing instructions in the silicon kingdom.",
+      "rewardXp": 50,
+      "rewardGeo": 25
+    },
+    {
+      "id": "e2",
+      "quest": "TRIAL II // Greenpath Overgrowth",
+      "question": "Which JavaScript keyword binds an immutable variable to its enclosing lexical block?",
+      "options": ["var", "let", "const", "static"],
+      "answer": 2,
+      "explanation": "'const' seals a binding like a pale ore rune, preventing reassignment.",
+      "rewardXp": 60,
+      "rewardGeo": 30
+    },
+    {
+      "id": "e3",
+      "quest": "TRIAL III // Fungal Wastes",
+      "question": "Which primitive type represents pure dualistic states: true or false?",
+      "options": ["String", "Boolean", "Integer", "Tuple"],
+      "answer": 1,
+      "explanation": "Booleans govern the binary polarity of logic, akin to Light and Void.",
+      "rewardXp": 70,
+      "rewardGeo": 35
+    },
+    {
+      "id": "e4",
+      "quest": "TRIAL IV // Crystal Peak",
+      "question": "In web architecture, what does HTML stand for?",
+      "options": ["HyperText Markup Language", "High-Tech Modern Language", "Hyperlink Text Management List", "Home Tool Markup Layout"],
+      "answer": 0,
+      "explanation": "HTML defines the structural carapace of every document across the digital ether.",
+      "rewardXp": 80,
+      "rewardGeo": 40
+    },
+    {
+      "id": "e5",
+      "quest": "TRIAL V // Basin of the Vessel",
+      "question": "Which operator enforces strict equality without implicit type coercion in JavaScript?",
+      "options": ["==", "===", "=", "!="],
+      "answer": 1,
+      "explanation": "Strict equality (===) validates both value and type without demonic coercion.",
+      "rewardXp": 90,
+      "rewardGeo": 45
+    }
+  ],
+  "intermediate": [
+    {
+      "id": "i1",
+      "quest": "TRIAL VI // Deepnest Caverns",
+      "question": "Which data structure strictly operates on a Last-In, First-Out (LIFO) discipline?",
+      "options": ["Queue", "Stack", "Linked List", "Binary Heap"],
+      "answer": 1,
+      "explanation": "Like piling nail charms into a narrow chamber, the last placed is the first drawn!",
+      "rewardXp": 120,
+      "rewardGeo": 60
+    },
+    {
+      "id": "i2",
+      "quest": "TRIAL VII // City of Tears",
+      "question": "Which array method creates a new collection by transforming each element through a projection?",
+      "options": [".forEach()", ".map()", ".filter()", ".reduce()"],
+      "answer": 1,
+      "explanation": ".map() transmutes elements into new vessels without corrupting the original array.",
+      "rewardXp": 140,
+      "rewardGeo": 70
+    },
+    {
+      "id": "i3",
+      "quest": "TRIAL VIII // Soul Sanctum",
+      "question": "What is the average time complexity of key lookup in a standard Hash Table?",
+      "options": ["O(n)", "O(log n)", "O(1)", "O(n²)"],
+      "answer": 2,
+      "explanation": "Hash tables locate entries in instantaneous constant O(1) time through bucket hashing.",
+      "rewardXp": 160,
+      "rewardGeo": 80
+    },
+    {
+      "id": "i4",
+      "quest": "TRIAL IX // Royal Waterways",
+      "question": "What HTTP response status code signifies that a requested resource was successfully retrieved?",
+      "options": ["200 OK", "301 Redirect", "404 Not Found", "500 Server Error"],
+      "answer": 0,
+      "explanation": "HTTP 200 OK signals harmonious transmission across client and server.",
+      "rewardXp": 180,
+      "rewardGeo": 90
+    },
+    {
+      "id": "i5",
+      "quest": "TRIAL X // Nosk's Lair",
+      "question": "In Git version control, which command branches and switches your workspace in a single invocation?",
+      "options": ["git branch -n", "git checkout -b <name>", "git merge --new", "git switch --all"],
+      "answer": 1,
+      "explanation": "'git checkout -b <name>' spawns an alternate timeline branch and switches to it.",
+      "rewardXp": 200,
+      "rewardGeo": 100
+    }
+  ],
+  "hard": [
+    {
+      "id": "h1",
+      "quest": "TRIAL XI // The Abyss",
+      "question": "What is the worst-case time complexity of searching in a Balanced Binary Search Tree (AVL/Red-Black)?",
+      "options": ["O(n)", "O(1)", "O(log n)", "O(n log n)"],
+      "answer": 2,
+      "explanation": "Self-balancing tree rotations guarantee tree height remains bounded at O(log n).",
+      "rewardXp": 250,
+      "rewardGeo": 150
+    },
+    {
+      "id": "h2",
+      "quest": "TRIAL XII // White Palace",
+      "question": "In distributed database theory, what three pillars form the CAP Theorem?",
+      "options": ["Consistency, Availability, Partition Tolerance", "Concurrency, Access, Performance", "Capacity, Allocation, Persistence", "Control, Authority, Partition"],
+      "answer": 0,
+      "explanation": "Eric Brewer's theorem dictates an asynchronous network can only preserve 2 of the 3.",
+      "rewardXp": 280,
+      "rewardGeo": 180
+    },
+    {
+      "id": "h3",
+      "quest": "TRIAL XIII // The Black Egg Temple",
+      "question": "In JavaScript's Event Loop, where are Promise resolutions and queueMicrotask callbacks queued?",
+      "options": ["Call Stack", "Macrotask Queue", "Microtask Queue", "Render Pipeline"],
+      "answer": 2,
+      "explanation": "Microtasks drain to completion immediately following synchronous execution before rendering.",
+      "rewardXp": 320,
+      "rewardGeo": 220
+    },
+    {
+      "id": "h4",
+      "quest": "TRIAL XIV // Godhome Pantheon",
+      "question": "Which creational pattern strictly confines a class to a single global instance across runtime?",
+      "options": ["Factory Pattern", "Singleton Pattern", "Observer Pattern", "Strategy Pattern"],
+      "answer": 1,
+      "explanation": "A Singleton ensures a solitary, universally accessible instance like the Pale King himself.",
+      "rewardXp": 350,
+      "rewardGeo": 260
+    },
+    {
+      "id": "h5",
+      "quest": "TRIAL XV // The Radiance Peak",
+      "question": "What rate-limiting technique postpones function execution until a quiet period of inactivity occurs?",
+      "options": ["Throttling", "Debouncing", "Memoization", "Currying"],
+      "answer": 1,
+      "explanation": "Debouncing postpones execution until the flurry of events settles, calming the storm.",
+      "rewardXp": 400,
+      "rewardGeo": 300
+    }
+  ]
+}
