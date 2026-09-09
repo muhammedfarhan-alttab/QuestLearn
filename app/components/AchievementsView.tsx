@@ -56,25 +56,25 @@ export default function AchievementsView({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 font-mono animate-in fade-in duration-300">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 animate-in fade-in duration-300">
       
       {/* 1. HERO COMPLETION BANNER */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
         <div className="absolute -right-24 -top-24 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase flex items-center space-x-1.5 shadow-sm">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center space-x-1.5">
                 <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span>HALL OF ACHIEVEMENTS</span>
+                <span>Hall of Achievements</span>
               </span>
               <span className="text-xs text-slate-500">•</span>
-              <span className="text-xs text-slate-300 font-bold">12 Milestones Catalog</span>
+              <span className="text-xs text-slate-300 font-semibold font-mono">12 Milestones</span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
               Trophies & Badges of Honor
             </h1>
 

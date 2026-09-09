@@ -116,16 +116,16 @@ export default function CoursesView({
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300 font-mono">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/25 text-sky-300 text-xs font-medium mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
             <span>Diagnostic Prerequisite Curriculum</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Academic Course Catalog
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
@@ -134,13 +134,13 @@ export default function CoursesView({
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center space-x-1.5 p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs">
+        <div className="flex items-center space-x-1 p-1 bg-slate-950/80 border border-slate-800 rounded-xl text-xs">
           {subjects.map(s => (
             <button
               key={s}
               onClick={() => setSelectedSubject(s)}
-              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer ${
-                selectedSubject === s ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
+                selectedSubject === s ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
               }`}
             >
               {s}
@@ -160,40 +160,38 @@ export default function CoursesView({
           return (
             <div
               key={course.id}
-              className={`border rounded-2xl p-5 shadow-xl transition-all flex flex-col justify-between space-y-4 group ${
+              className={`border rounded-xl p-5 shadow-lg transition-all flex flex-col justify-between space-y-4 group ${
                 isUnlocked 
-                  ? 'bg-slate-900 border-indigo-500/40 hover:border-indigo-400' 
-                  : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                  ? 'bg-slate-900/80 border-slate-800 hover:border-sky-500/40' 
+                  : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700'
               }`}
             >
               <div>
                 {/* Card Top */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 group-hover:scale-105 transition-transform">
+                    <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 group-hover:border-slate-700 transition">
                       {renderIcon(course.iconName)}
                     </div>
                     <div>
-                      <div className="flex items-center space-x-2">
-                        <h3 className="text-base font-black text-white group-hover:text-indigo-300 transition-colors">
-                          {course.title}
-                        </h3>
-                      </div>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                      <h3 className="text-base font-bold text-white group-hover:text-sky-300 transition-colors">
+                        {course.title}
+                      </h3>
+                      <span className="text-[11px] text-slate-400">
                         {course.subject} • {course.topicsCount} Concepts
                       </span>
                     </div>
                   </div>
 
                   {isUnlocked ? (
-                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 flex items-center space-x-1 shrink-0">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center space-x-1 shrink-0">
                       <Unlock className="w-3 h-3 text-emerald-400" />
-                      <span>UNLOCKED</span>
+                      <span>Unlocked</span>
                     </span>
                   ) : (
-                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-950/50 border border-amber-500/40 text-amber-300 flex items-center space-x-1 shrink-0">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center space-x-1 shrink-0">
                       <Lock className="w-3 h-3 text-amber-400" />
-                      <span>LOCKED</span>
+                      <span>Locked</span>
                     </span>
                   )}
                 </div>
@@ -205,7 +203,7 @@ export default function CoursesView({
                 {/* Tags */}
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {course.tags.map(tag => (
-                    <span key={tag} className="px-2 py-0.5 rounded text-[9px] bg-slate-950 text-slate-400 border border-slate-800/80">
+                    <span key={tag} className="px-2 py-0.5 rounded text-[10px] bg-slate-950 text-slate-400 border border-slate-800/80">
                       #{tag}
                     </span>
                   ))}
@@ -216,18 +214,18 @@ export default function CoursesView({
                   <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-1.5">
                     <div className="flex justify-between text-[11px]">
                       <span className="text-slate-400">AI Calibrated Baseline Mastery:</span>
-                      <span className="text-emerald-300 font-bold">{masteryPct}%</span>
+                      <span className="text-emerald-300 font-bold font-mono">{masteryPct}%</span>
                     </div>
-                    <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800">
                       <div
-                        className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-cyan-400"
+                        className="h-full rounded-full transition-all duration-500 bg-emerald-400"
                         style={{ width: `${masteryPct}%` }}
                       />
                     </div>
                   </div>
                 ) : (
                   <div className="mt-4 pt-3 border-t border-slate-800/80">
-                    <div className="p-2.5 bg-amber-950/20 border border-amber-500/20 rounded-xl text-[11px] text-amber-200/90 flex items-center space-x-2">
+                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 flex items-center space-x-2">
                       <Zap className="w-4 h-4 text-amber-400 shrink-0" />
                       <span>Take diagnostic test to unlock course and generate personalized World Map.</span>
                     </div>
@@ -242,7 +240,7 @@ export default function CoursesView({
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => onOpenWorldMap(course)}
-                        className="px-3 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shadow-cyan-600/25 uppercase"
+                        className="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm"
                       >
                         <Map className="w-3.5 h-3.5" />
                         <span>Enter Roadmap</span>
@@ -250,7 +248,7 @@ export default function CoursesView({
 
                       <button
                         onClick={() => onStartDiagnostic(course.id)}
-                        className="px-3 py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                        className="px-3 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium rounded-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <Zap className="w-3.5 h-3.5 text-amber-400" />
                         <span>Recalibrate</span>
@@ -260,9 +258,9 @@ export default function CoursesView({
                     {onOpenLectureNotes && (
                       <button
                         onClick={() => onOpenLectureNotes(course)}
-                        className="w-full py-2 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                        className="w-full py-2 bg-sky-950/40 hover:bg-sky-900/50 border border-sky-500/30 text-sky-200 text-xs font-medium rounded-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
-                        <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                        <BookOpen className="w-3.5 h-3.5 text-sky-400" />
                         <span>Interactive Lecture Notes & AI</span>
                       </button>
                     )}
@@ -270,17 +268,17 @@ export default function CoursesView({
                     {onOpenLab && (
                       <button
                         onClick={() => onOpenLab(course)}
-                        className="w-full py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-200 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                        className="w-full py-2 bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/30 text-emerald-200 text-xs font-medium rounded-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <FlaskConical className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>🧪 Practical Simulation Labs</span>
+                        <span>Practical Simulation Labs</span>
                       </button>
                     )}
                   </div>
                 ) : (
                   <button
                     onClick={() => onStartDiagnostic(course.id)}
-                    className="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-amber-500/25 uppercase tracking-wide animate-pulse"
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold rounded-lg transition flex items-center justify-center space-x-2 cursor-pointer shadow-sm"
                   >
                     <Zap className="w-4 h-4 fill-slate-950" />
                     <span>Take Diagnostic Test to Unlock</span>

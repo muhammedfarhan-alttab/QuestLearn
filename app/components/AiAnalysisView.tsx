@@ -123,50 +123,47 @@ export default function AiAnalysisView({
   // -------------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 font-mono text-center animate-in fade-in duration-300">
-        <div className="bg-slate-900/90 border-2 border-indigo-500/40 rounded-3xl p-8 sm:p-12 shadow-[0_0_60px_rgba(99,102,241,0.2)] relative overflow-hidden backdrop-blur-md">
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center animate-in fade-in duration-300">
+        <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-8 sm:p-12 shadow-2xl relative overflow-hidden backdrop-blur-md">
           {/* Background Ambient Glows */}
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Central Pulsing AI Scanner */}
-          <div className="relative w-28 h-28 mx-auto mb-8 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full bg-indigo-500/20 animate-ping opacity-60" />
-            <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 opacity-30 animate-spin" style={{ animationDuration: '6s' }} />
-            <div className="relative w-20 h-20 rounded-2xl bg-slate-950 border-2 border-indigo-400/80 flex items-center justify-center shadow-xl shadow-indigo-500/30">
-              <BrainCircuit className="w-10 h-10 text-indigo-400 animate-pulse" />
+          {/* Central AI Scanner */}
+          <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-slate-950 border border-sky-500/40 flex items-center justify-center shadow-lg shadow-sky-500/20">
+              <BrainCircuit className="w-8 h-8 text-sky-400" />
             </div>
-            <Sparkles className="w-6 h-6 text-amber-400 absolute -top-1 -right-1 animate-bounce" />
           </div>
 
           {/* Top Badge */}
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-bold mb-4 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
-            <span>QUESTLEARN AI & GOOGLE GEMINI</span>
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs font-medium mb-3">
+            <span className="w-2 h-2 rounded-full bg-sky-400" />
+            <span>QuestLearn AI & Google Gemini</span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Synthesizing Your AI Roadmap
           </h2>
 
           <p className="text-sm text-slate-300 max-w-lg mx-auto mt-2">
-            Evaluating performance for <span className="text-amber-400 font-bold">{course.title}</span>.
+            Evaluating performance for <span className="text-amber-400 font-semibold">{course.title}</span>.
           </p>
 
           {/* Dynamic Cycling Progress Status */}
-          <div className="my-6 py-3 px-4 bg-slate-950/80 border border-slate-800 rounded-xl max-w-md mx-auto flex items-center justify-center space-x-2 text-xs text-indigo-200">
-            <Zap className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+          <div className="my-6 py-2.5 px-4 bg-slate-950/80 border border-slate-800 rounded-xl max-w-md mx-auto flex items-center justify-center space-x-2 text-xs text-sky-200">
+            <Zap className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="transition-all duration-300">{loadingSteps[loadingStep]}</span>
           </div>
 
-          {/* Shimmer Preview Placeholder Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl mx-auto opacity-40 pointer-events-none mt-8">
-            <div className="h-24 rounded-xl bg-slate-800/60 border border-slate-700 animate-pulse" />
-            <div className="h-24 rounded-xl bg-slate-800/60 border border-slate-700 animate-pulse" />
-            <div className="h-24 rounded-xl bg-slate-800/60 border border-slate-700 animate-pulse" />
-            <div className="h-24 rounded-xl bg-slate-800/60 border border-slate-700 animate-pulse" />
-            <div className="h-24 rounded-xl bg-slate-800/60 border border-slate-700 animate-pulse" />
-            <div className="h-24 rounded-xl bg-slate-800/60 border border-slate-700 animate-pulse" />
+          {/* Placeholder Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl mx-auto opacity-30 pointer-events-none mt-6">
+            <div className="h-20 rounded-xl bg-slate-800/60 border border-slate-700" />
+            <div className="h-20 rounded-xl bg-slate-800/60 border border-slate-700" />
+            <div className="h-20 rounded-xl bg-slate-800/60 border border-slate-700" />
+            <div className="h-20 rounded-xl bg-slate-800/60 border border-slate-700" />
+            <div className="h-20 rounded-xl bg-slate-800/60 border border-slate-700" />
+            <div className="h-20 rounded-xl bg-slate-800/60 border border-slate-700" />
           </div>
         </div>
       </div>
@@ -177,10 +174,10 @@ export default function AiAnalysisView({
   // 2. MAIN AI ANALYSIS VIEW (CARDS DISPLAY)
   // -------------------------------------------------------------
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 font-mono animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 animate-in fade-in duration-500">
       
       {/* HEADER BANNER */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
         <div className="absolute -right-24 -top-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 

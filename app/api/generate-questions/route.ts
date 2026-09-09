@@ -20,7 +20,7 @@ function extractJsonString(rawText: string): string {
 }
 
 /**
- * Generates a full 10-question battery from the existing static question bank
+ * Generates a full 25-question battery from the existing static question bank
  * when Gemini is unreachable or GEMINI_API_KEY is not configured.
  */
 function generateFallbackQuestions(
@@ -59,7 +59,7 @@ function generateFallbackQuestions(
     { vehicle: 'A subatomic particle beam', factor: 4.0 }
   ];
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 25; i++) {
     const base = baseQuestions[i % baseQuestions.length];
     const scenario = scenarioPool[(i + attempt) % scenarioPool.length];
     
@@ -187,12 +187,12 @@ Reference Concept Guide:
 ${refSamples}
 
 STRICT REQUIREMENTS:
-1. Generate EXACTLY 10 Multiple-Choice Questions (MCQs).
+1. Generate EXACTLY 25 Multiple-Choice Questions (MCQs).
 2. Each question MUST have EXACTLY 4 distinct, plausible options.
 3. The "answer" field MUST be the integer index (0, 1, 2, or 3) indicating which option in the "options" array is correct.
 4. Distribute the correct answer across indices 0, 1, 2, and 3 (do NOT put all answers at index 0).
 5. Provide a rigorous, step-by-step academic "explanation" showing the exact formula or logic.
-6. CONCEPT FIDELITY: All 10 questions MUST test "${topic.trim()}" with high academic quality.
+6. CONCEPT FIDELITY: All 25 questions MUST test "${topic.trim()}" with high academic quality.
 7. NEVER BE IDENTICAL TO PREVIOUS ATTEMPTS:
    - Change values, scenarios, wording, physical objects, and examples.
    - For example: if a problem was about a train moving at 60 km/h, rewrite it for a spacecraft accelerating at 15 m/s², a sports car braking, a drone climbing, etc.
@@ -319,8 +319,8 @@ Return ONLY valid JSON:
         };
       });
 
-    // If Gemini returned fewer than 10 questions, pad with procedural fallback
-    if (normalizedQuestions.length < 10) {
+    // If Gemini returned fewer than 25 questions, pad with procedural fallback
+    if (normalizedQuestions.length < 25) {
       const padFallback = generateFallbackQuestions(
         courseId,
         stageNumber,
@@ -329,13 +329,13 @@ Return ONLY valid JSON:
         referenceQuestions,
         attempt
       );
-      for (let i = normalizedQuestions.length; i < 10; i++) {
+      for (let i = normalizedQuestions.length; i < 25; i++) {
         normalizedQuestions.push(padFallback[i % padFallback.length]);
       }
     }
 
     return NextResponse.json({
-      questions: normalizedQuestions.slice(0, 10),
+      questions: normalizedQuestions.slice(0, 25),
       topic,
       difficulty,
       source: 'gemini',

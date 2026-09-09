@@ -23,7 +23,8 @@ import {
   BrainCircuit,
   FlaskConical,
   Heart,
-  Target
+  Target,
+  AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -236,29 +237,29 @@ export default function WorldMapView({
   // IF LOCKED: Display Prerequisite Diagnostic Guard
   if (!isUnlocked) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 space-y-6 animate-in fade-in duration-300 font-mono text-center">
-        <div className="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-8 md:p-12 shadow-[0_0_80px_rgba(245,158,11,0.15)] relative overflow-hidden">
+      <div className="max-w-3xl mx-auto px-4 py-16 space-y-6 animate-in fade-in duration-300 text-center">
+        <div className="bg-slate-900/85 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="w-20 h-20 rounded-2xl bg-amber-500/20 border-2 border-amber-500/60 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/20">
-            <Lock className="w-10 h-10 text-amber-400" />
+          <div className="w-16 h-16 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-5">
+            <Lock className="w-8 h-8 text-amber-400" />
           </div>
 
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-3">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium mb-3">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>AI Diagnostic Gate Required</span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Personalized World Map Locked
           </h1>
 
-          <p className="text-sm text-slate-300 max-w-xl mx-auto mt-3 leading-relaxed">
-            The adaptive AI learning engine cannot construct your personalized campaign map for <span className="text-amber-400 font-bold">{course.title}</span> until you complete the initial baseline diagnostic assessment.
+          <p className="text-sm text-slate-300 max-w-xl mx-auto mt-2.5 leading-relaxed">
+            The adaptive AI learning engine cannot construct your personalized campaign map for <span className="text-amber-400 font-semibold">{course.title}</span> until you complete the initial baseline diagnostic assessment.
           </p>
 
-          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 max-w-lg mx-auto my-6 text-left text-xs space-y-2 text-slate-300">
-            <div className="flex items-center space-x-2 text-indigo-400 font-bold">
+          <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 max-w-lg mx-auto my-6 text-left text-xs space-y-2 text-slate-300">
+            <div className="flex items-center space-x-2 text-sky-400 font-semibold">
               <Zap className="w-4 h-4" />
               <span>What the AI Diagnostic does:</span>
             </div>
@@ -272,7 +273,7 @@ export default function WorldMapView({
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => onRetakeDiagnostic(course.id)}
-              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 text-xs uppercase tracking-wider cursor-pointer"
+              className="w-full sm:w-auto px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-lg transition flex items-center justify-center space-x-2 shadow-sm text-xs cursor-pointer"
             >
               <Zap className="w-4 h-4 fill-slate-950" />
               <span>Launch AI Diagnostic Assessment</span>
@@ -281,7 +282,7 @@ export default function WorldMapView({
 
             <button
               onClick={onSwitchCourse}
-              className="w-full sm:w-auto px-6 py-4 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold rounded-xl transition text-xs uppercase cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-medium rounded-lg transition text-xs cursor-pointer"
             >
               Back to Course Catalog
             </button>
@@ -292,38 +293,38 @@ export default function WorldMapView({
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300 font-mono">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300">
       
       {/* 1. TOP CAMPAIGN BANNER */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute -right-20 -top-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase flex items-center space-x-1 shadow-sm">
+              <span className="px-2.5 py-0.5 rounded-md text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center space-x-1">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                 <span>AI-Calibrated World Map</span>
               </span>
-              <span className={`px-2.5 py-0.5 rounded text-[10px] ${skillMeta.badgeColor} border font-black uppercase flex items-center space-x-1 shadow-sm`}>
+              <span className={`px-2.5 py-0.5 rounded-md text-[11px] ${skillMeta.badgeColor} border font-medium flex items-center space-x-1`}>
                 <span>{skillMeta.icon} Calibrated to {effectiveSkillLevel} Level ({effectiveScore}%)</span>
               </span>
               {remediationStages.length > 0 && (
-                <span className="px-2.5 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 font-black uppercase flex items-center space-x-1 shadow-sm animate-pulse">
+                <span className="px-2.5 py-0.5 rounded-md text-[11px] bg-rose-500/10 text-rose-300 border border-rose-500/25 font-medium flex items-center space-x-1">
                   <Target className="w-3 h-3 text-rose-400" />
                   <span>{remediationStages.length} AI Remediation Node{remediationStages.length > 1 ? 's' : ''}</span>
                 </span>
               )}
               {aiModelUsed && (
-                <span className="px-2.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-black uppercase flex items-center space-x-1 shadow-sm">
-                  <BrainCircuit className="w-3 h-3 text-indigo-400" />
+                <span className="px-2.5 py-0.5 rounded-md text-[11px] bg-sky-500/10 text-sky-300 border border-sky-500/25 font-medium flex items-center space-x-1">
+                  <BrainCircuit className="w-3 h-3 text-sky-400" />
                   <span>Engine: {aiModelUsed}</span>
                 </span>
               )}
-              <span className="text-slate-400 text-xs">•</span>
-              <span className="text-amber-400 text-xs font-bold">{course.title}</span>
+              <span className="text-slate-500 text-xs">•</span>
+              <span className="text-amber-400 text-xs font-semibold">{course.title}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
               Personalized Campaign World Map
             </h1>
             <p className="text-xs text-slate-400 mt-1 max-w-xl">
@@ -331,80 +332,80 @@ export default function WorldMapView({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             {onViewAiAnalysis && (
               <button
                 onClick={onViewAiAnalysis}
-                className="px-3.5 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                className="px-3 py-2 bg-sky-950/40 hover:bg-sky-900/50 border border-sky-500/30 text-sky-200 text-xs font-medium rounded-lg transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
               >
-                <BrainCircuit className="w-3.5 h-3.5 text-indigo-400" />
+                <BrainCircuit className="w-3.5 h-3.5 text-sky-400" />
                 <span>View AI Analysis</span>
               </button>
             )}
             <button
               onClick={() => onRetakeDiagnostic(course.id)}
-              className="px-3.5 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-medium rounded-lg transition flex items-center space-x-1.5 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-              <span>Recalibrate Diagnostic</span>
+              <span>Recalibrate</span>
             </button>
             <button
               onClick={onSwitchCourse}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-md shadow-indigo-600/25"
+              className="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Back to All Courses</span>
+              <span>All Courses</span>
             </button>
           </div>
         </div>
 
         {/* Campaign Metrics */}
-        <div className="mt-5 pt-4 border-t border-slate-800 flex flex-wrap items-center gap-6 text-xs font-mono">
+        <div className="mt-5 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-6 text-xs">
           <div>
-            <span className="text-slate-500 uppercase text-[10px] block">Progress</span>
-            <span className="text-white font-bold">{completedStages} / {stages.length} Stage Tests Cleared</span>
+            <span className="text-slate-400 text-[11px] block">Progress</span>
+            <span className="text-white font-semibold font-mono">{completedStages} / {stages.length} Cleared</span>
           </div>
           <div>
-            <span className="text-slate-500 uppercase text-[10px] block">Stars Harvested</span>
-            <span className="text-amber-400 font-bold">⭐ {totalStars} / {stages.length * 3}</span>
+            <span className="text-slate-400 text-[11px] block">Stars Harvested</span>
+            <span className="text-amber-400 font-semibold font-mono">⭐ {totalStars} / {stages.length * 3}</span>
           </div>
           <div>
-            <span className="text-slate-500 uppercase text-[10px] block">Course Boss Exam</span>
-            <span className="text-rose-400 font-bold">{course.bossName}</span>
+            <span className="text-slate-400 text-[11px] block">Course Boss Exam</span>
+            <span className="text-rose-400 font-semibold">{course.bossName}</span>
           </div>
           {aiRoadmapMeta?.estimatedStudyHours && (
             <div>
-              <span className="text-slate-500 uppercase text-[10px] block">Est. Study Hours</span>
-              <span className="text-cyan-300 font-bold">⏱️ {aiRoadmapMeta.estimatedStudyHours} Hours</span>
+              <span className="text-slate-400 text-[11px] block">Est. Study Hours</span>
+              <span className="text-sky-300 font-semibold font-mono">{aiRoadmapMeta.estimatedStudyHours} Hours</span>
             </div>
           )}
           {aiRoadmapMeta?.difficulty && (
             <div>
-              <span className="text-slate-500 uppercase text-[10px] block">AI Assessed Tier</span>
-              <span className="text-amber-400 font-bold">⚡ {aiRoadmapMeta.difficulty}</span>
+              <span className="text-slate-400 text-[11px] block">AI Assessed Tier</span>
+              <span className="text-amber-400 font-semibold">{aiRoadmapMeta.difficulty}</span>
             </div>
           )}
         </div>
 
         {/* Course Star-to-Heart Soul Ward Forge (Course-Isolated) */}
-        <div className="mt-5 pt-4 border-t border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-950/80 p-4 rounded-2xl border border-rose-500/30 shadow-lg">
+        <div className="mt-5 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-950/60 p-4 rounded-xl border border-rose-500/20 shadow-md">
           <div className="space-y-1">
             <div className="flex items-center space-x-2 text-xs font-bold text-amber-400">
               <Heart className="w-4 h-4 text-rose-400 fill-rose-500" />
               <span>{course.title} Soul Ward Forge</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase font-black">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 uppercase font-semibold">
                 Course Isolated
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-snug">
+            <p className="text-xs text-slate-400 leading-snug">
               Forge <b className="text-amber-400">3 {course.title} Stars</b> into <b className="text-rose-400">1 Extra Heart</b> to absorb wrong answer penalties during difficult tests in this course!
             </p>
             <div className="flex items-center space-x-4 text-xs pt-1">
-              <span className="text-slate-300 font-bold">
-                ⭐ Available: <b className="text-amber-400">{heartsSummary.starsAvailable} Stars</b> ({heartsSummary.starsSpent} spent)
+              <span className="text-slate-300 font-medium">
+                ⭐ Available: <b className="text-amber-400 font-mono">{heartsSummary.starsAvailable} Stars</b> ({heartsSummary.starsSpent} spent)
               </span>
               <span className="text-slate-500">•</span>
-              <span className="text-slate-300 font-bold flex items-center space-x-1.5">
+              <span className="text-slate-300 font-medium flex items-center space-x-1.5">
                 <span>Extra Hearts:</span>
                 <span className="flex items-center space-x-1 text-sm text-rose-400">
                   {Array.from({ length: heartsSummary.maxHearts }).map((_, i) => (
@@ -413,28 +414,28 @@ export default function WorldMapView({
                     </span>
                   ))}
                 </span>
-                <span className="text-slate-400">({heartsSummary.extraHearts}/{heartsSummary.maxHearts})</span>
+                <span className="text-slate-400 font-mono">({heartsSummary.extraHearts}/{heartsSummary.maxHearts})</span>
               </span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5 shrink-0 flex-wrap">
+          <div className="flex items-center space-x-2 shrink-0 flex-wrap">
             <button
               onClick={handleForgeHeart}
               disabled={!heartsSummary.canForge}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer ${
                 heartsSummary.canForge
-                  ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 shadow-lg shadow-rose-500/25 active:scale-95'
+                  ? 'bg-rose-500 hover:bg-rose-400 text-white shadow-sm active:scale-95'
                   : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
               }`}
             >
               <Heart className="w-3.5 h-3.5 fill-current" />
-              <span>Forge Extra Heart (3 ⭐)</span>
+              <span>Forge Heart (3 ⭐)</span>
             </button>
             {heartsSummary.canReforge && (
               <button
                 onClick={handleRefundHeart}
-                className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer"
+                className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer"
                 title="Refund 1 Extra Heart back to 3 course stars"
               >
                 <span>Reforge (Refund)</span>
@@ -449,7 +450,7 @@ export default function WorldMapView({
         
         {/* Stages Timeline Column */}
         <div className="lg:col-span-7 space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
             Your Algorithmic Course Roadmap:
           </h3>
 
@@ -468,22 +469,22 @@ export default function WorldMapView({
 
                   <div
                     onClick={() => setSelectedStage(stage)}
-                    className={`p-4 rounded-xl border-2 transition cursor-pointer flex items-center justify-between ${
+                    className={`p-4 rounded-xl border transition cursor-pointer flex items-center justify-between ${
                       isSelected
-                        ? 'border-cyan-400 bg-slate-900 shadow-xl shadow-cyan-500/10'
+                        ? 'border-sky-500 bg-slate-900/90 shadow-md'
                         : isLocked
-                        ? 'border-slate-800/80 bg-slate-950/60 opacity-60'
-                        : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                        ? 'border-slate-800/60 bg-slate-950/40 opacity-60'
+                        : 'border-slate-800 bg-slate-950/70 hover:border-slate-700'
                     }`}
                   >
                     <div className="flex items-center space-x-3.5">
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs border ${
                         stage.isBoss 
-                          ? 'border-amber-500 bg-amber-950/60 text-amber-300' 
+                          ? 'border-amber-500/50 bg-amber-500/10 text-amber-300' 
                           : stage.status === 'completed'
-                          ? 'border-emerald-500 bg-emerald-950/60 text-emerald-300'
+                          ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300'
                           : stage.status === 'remediation_priority'
-                          ? 'border-rose-500 bg-rose-950/60 text-rose-300'
+                          ? 'border-rose-500/50 bg-rose-500/10 text-rose-300'
                           : 'border-slate-700 bg-slate-900 text-slate-300'
                       }`}>
                         {stage.isBoss ? <Crown className="w-5 h-5 text-amber-400" /> : stage.stageNumber}
@@ -494,19 +495,19 @@ export default function WorldMapView({
                           <h4 className="text-sm font-bold text-white">
                             Stage {stage.stageNumber}: {stage.name}
                           </h4>
-                          <span className="text-[10px] text-slate-500">({stage.kanji})</span>
+                          <span className="text-[11px] text-slate-500">({stage.kanji})</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-xs text-slate-400 mt-0.5">
                           {stage.conceptFocus}
                         </p>
                         {stage.status === 'remediation_priority' && (
-                          <div className="mt-1 flex items-center space-x-1 text-[9px] font-bold text-rose-400">
-                            <Target className="w-3 h-3 shrink-0 text-rose-400 animate-pulse" />
+                          <div className="mt-1 flex items-center space-x-1 text-[11px] font-semibold text-rose-400">
+                            <Target className="w-3 h-3 shrink-0 text-rose-400" />
                             <span>AI Remediation Focus: {stage.targetConcept || stage.conceptFocus}</span>
                           </div>
                         )}
                         {effectiveSkillLevel === 'Advanced' && stage.stageNumber === 1 && (
-                          <div className="mt-1 flex items-center space-x-1 text-[9px] font-bold text-emerald-400">
+                          <div className="mt-1 flex items-center space-x-1 text-[11px] font-semibold text-emerald-400">
                             <Sparkles className="w-3 h-3 shrink-0 text-emerald-400" />
                             <span>Accelerated Proving Ground (Foundations Fast-Tracked)</span>
                           </div>
@@ -520,7 +521,7 @@ export default function WorldMapView({
                           {'⭐'.repeat(stage.stars)}
                         </div>
                       )}
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${getStatusBadge(stage.status)}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${getStatusBadge(stage.status)}`}>
                         {stage.status.replace('_', ' ')}
                       </span>
                     </div>
@@ -533,7 +534,7 @@ export default function WorldMapView({
 
         {/* Selected Stage Detail & Launch Combat Panel */}
         <div className="lg:col-span-5">
-          <div className="sticky top-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+          <div className="sticky top-6 bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-cyan-400 uppercase">
@@ -635,6 +636,17 @@ export default function WorldMapView({
                 )}
               </div>
             </div>
+
+            {/* Boss Threat Warning if no extra hearts forged */}
+            {selectedStage.isBoss && heartsSummary.extraHearts === 0 && (
+              <div className="mb-3 p-2.5 bg-rose-950/80 border border-rose-500/60 rounded-xl flex items-start gap-2 text-rose-200 text-xs shadow-inner">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+                <div>
+                  <span className="font-black text-rose-300 block uppercase tracking-wider text-[10px]">⚠️ Sovereign Boss Threat</span>
+                  <span>Final Boss strikes deal <strong>3–4 Hearts</strong> per error and release a Phase 2 shockwave! Extra Hearts from the Soul Ward Forge above are critical to survive.</span>
+                </div>
+              </div>
+            )}
 
             {/* In-Course Test Launch Action (Launches into Combat Arena) */}
             <button

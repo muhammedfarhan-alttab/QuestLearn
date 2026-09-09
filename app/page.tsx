@@ -41,7 +41,10 @@ import {
   User,
   Map,
   FlaskConical,
-  Heart
+  Heart,
+  Maximize2,
+  Minimize2,
+  AlertTriangle
 } from 'lucide-react';
 import { getCourseHearts, consumeCourseHeart } from './lib/courseHeartsEngine';
 import DashboardView from './components/DashboardView';
@@ -97,7 +100,8 @@ import {
   executeRevive,
   PHOENIX_REVIVE_GEO_COST,
   DEFAULT_REVIVE_HEARTS,
-  DEFAULT_REVIVE_HP
+  DEFAULT_REVIVE_HP,
+  STAGE_5_PHASE2_BURST_DAMAGE
 } from './lib/battleEngine';
 import {
   getStoredDiagnosticSummary,
@@ -896,49 +900,49 @@ function UnifiedHeader({
   const activeLevel = classLevels ? classLevels[selectedClassId] || 1 : 1;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#090d16]/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 py-2.5 flex items-center justify-between font-mono select-none">
+    <header className="sticky top-0 z-50 bg-[#090d16]/90 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-4 py-2 flex items-center justify-between select-none">
       
-      {/* Left: Logo & Duolingo-style Level / Streak HUD */}
+      {/* Left: Logo & Level / Streak HUD */}
       <div className="flex items-center space-x-2.5">
         <button 
           onClick={() => setMainTab('courses')} 
           className="flex items-center space-x-2 text-left group cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center font-black text-cyan-400 text-sm group-hover:scale-105 transition">
+          <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center font-bold text-sky-400 text-sm group-hover:bg-sky-500/25 transition">
             Q
           </div>
           <div>
-            <div className="text-xs font-black text-white tracking-wider flex items-center gap-1">
-              <span>QUESTLEARN</span>
-              <span className="text-[9px] text-cyan-400">RPG</span>
+            <div className="text-xs font-bold text-white tracking-wide flex items-center gap-1.5">
+              <span>QuestLearn</span>
+              <span className="text-[10px] text-sky-400 font-medium">RPG</span>
             </div>
-            <div className="text-[9px] text-slate-400">Class 12 Prep</div>
+            <div className="text-[10px] text-slate-400">Class 12 Prep</div>
           </div>
         </button>
 
         {/* Player Level Badge & XP Progress Pill */}
-        <div className="hidden sm:flex items-center space-x-2 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-[10px]">
-          <div className="flex items-center space-x-1 font-black text-cyan-400">
-            <span>LVL</span>
-            <span className="text-xs text-white">{playerLevelInfo.level}</span>
+        <div className="hidden sm:flex items-center space-x-2 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 text-xs">
+          <div className="flex items-center space-x-1 font-bold text-sky-400">
+            <span className="text-[10px] text-slate-400 font-medium">LVL</span>
+            <span className="text-white font-mono">{playerLevelInfo.level}</span>
           </div>
-          <div className="w-16 bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800">
+          <div className="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-full transition-all duration-300"
+              className="h-full bg-sky-400 rounded-full transition-all duration-300"
               style={{ width: `${playerLevelInfo.progressPercentage}%` }}
             />
           </div>
-          <span className="text-slate-400 font-bold">{playerLevelInfo.currentLevelXp}/{playerLevelInfo.nextLevelXpRequired} XP</span>
+          <span className="text-slate-400 font-mono text-[11px]">{playerLevelInfo.currentLevelXp}/{playerLevelInfo.nextLevelXpRequired} XP</span>
         </div>
 
         {/* Daily Streak Flame */}
         <button
           onClick={() => setMainTab('quests')}
-          className="flex items-center space-x-1 px-2 py-1 bg-amber-950/40 hover:bg-amber-950/70 border border-amber-500/40 rounded-xl text-xs font-bold text-amber-300 transition cursor-pointer"
+          className="flex items-center space-x-1 px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg text-xs font-semibold text-amber-300 transition cursor-pointer"
           title="Daily Learning Streak"
         >
           <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          <span>{streakDays}</span>
+          <span className="font-mono">{streakDays}</span>
         </button>
       </div>
 
@@ -948,16 +952,16 @@ function UnifiedHeader({
         {/* Courses & World Map Tab */}
         <button
           onClick={() => setMainTab('courses')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 ${
             isCoursesActive
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/25'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5" />
           <span>Courses</span>
           {mainTab === 'worldmap' && (
-            <span className="hidden sm:inline-block text-[9px] bg-emerald-950 text-emerald-200 px-1 py-0.2 rounded border border-emerald-400/40">
+            <span className="hidden sm:inline-block text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-500/30">
               Map
             </span>
           )}
@@ -966,15 +970,15 @@ function UnifiedHeader({
         {/* Interactive Lecture Notes Tab */}
         <button
           onClick={() => setMainTab('notes')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 relative ${
             mainTab === 'notes'
-              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5" />
           <span>Notes</span>
-          <span className="px-1 py-0.2 rounded text-[8px] font-black bg-cyan-950 text-cyan-300 border border-cyan-400/30">
+          <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
             AI
           </span>
         </button>
@@ -982,15 +986,15 @@ function UnifiedHeader({
         {/* Interactive Practical Labs Tab */}
         <button
           onClick={() => setMainTab('labs')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 relative ${
             mainTab === 'labs'
-              ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/25 font-black'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
           <FlaskConical className="w-3.5 h-3.5" />
           <span>Labs</span>
-          <span className="px-1 py-0.2 rounded text-[8px] font-black bg-emerald-950 text-emerald-300 border border-emerald-400/30">
+          <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
             SIM
           </span>
         </button>
@@ -998,16 +1002,16 @@ function UnifiedHeader({
         {/* Skill Tree Tab */}
         <button
           onClick={() => setMainTab('skilltree')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 relative ${
             mainTab === 'skilltree'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
           <span>Skills</span>
           {playerLevelInfo.skillPointsAvailable > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 animate-bounce">
+            <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-amber-400 text-slate-950 font-mono">
               {playerLevelInfo.skillPointsAvailable}SP
             </span>
           )}
@@ -1016,42 +1020,42 @@ function UnifiedHeader({
         {/* Daily Quests Tab */}
         <button
           onClick={() => setMainTab('quests')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 relative ${
             mainTab === 'quests'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
-          <Flame className="w-3.5 h-3.5" />
+          <Flame className="w-3.5 h-3.5 text-amber-400" />
           <span>Quests</span>
           {unclaimedQuestsCount > 0 && (
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute -top-0.5 -right-0.5" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5" />
           )}
         </button>
 
         {/* Achievements Tab */}
         <button
           onClick={() => setMainTab('achievements')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 relative ${
             mainTab === 'achievements'
-              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
-          <Trophy className="w-3.5 h-3.5" />
+          <Trophy className="w-3.5 h-3.5 text-amber-400" />
           <span>Trophies</span>
           {unclaimedAchievementsCount > 0 && (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping absolute -top-0.5 -right-0.5" />
+            <span className="w-2 h-2 rounded-full bg-amber-400 absolute -top-0.5 -right-0.5" />
           )}
         </button>
 
         {/* Characters Tab */}
         <button
           onClick={() => setMainTab('characters')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 ${
             mainTab === 'characters'
-              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
@@ -1062,10 +1066,10 @@ function UnifiedHeader({
         {(hasAiAnalysis || mainTab === 'ai-analysis') && (
           <button
             onClick={() => setMainTab('ai-analysis')}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
+            className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 ${
               mainTab === 'ai-analysis'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
-                : 'text-indigo-300 hover:text-white hover:bg-slate-800 border border-indigo-500/30'
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
+                : 'text-indigo-300 hover:text-white hover:bg-slate-850 border border-indigo-500/20'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
@@ -1075,10 +1079,10 @@ function UnifiedHeader({
 
         <button
           onClick={() => setMainTab('dashboard')}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
+          className={`px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 ${
             mainTab === 'dashboard'
-              ? 'bg-slate-700 text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
+              : 'text-slate-400 hover:text-white hover:bg-slate-850'
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
@@ -1086,12 +1090,12 @@ function UnifiedHeader({
         </button>
 
         {activeTestStage && (
-          <div className="px-2 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black flex items-center space-x-1 animate-pulse shrink-0">
-            <Swords className="w-3 h-3 text-rose-400" />
-            <span>STAGE {activeTestStage.stageNumber} BATTLE ACTIVE</span>
+          <div className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center space-x-1.5 shrink-0">
+            <Swords className="w-3.5 h-3.5 text-rose-400" />
+            <span>Stage {activeTestStage.stageNumber} Active</span>
             <button
               onClick={onExitTest}
-              className="ml-1 hover:text-white text-rose-400 font-black cursor-pointer"
+              className="ml-1 hover:text-white text-rose-400 font-bold cursor-pointer"
               title="Exit Test"
             >
               ✕
@@ -1104,15 +1108,15 @@ function UnifiedHeader({
       <div className="flex items-center space-x-2 shrink-0">
         <button
           onClick={() => setMainTab('characters')}
-          className="hidden md:flex items-center space-x-1.5 text-xs font-bold text-amber-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-indigo-500/40 hover:border-amber-400 transition cursor-pointer"
+          className="hidden md:flex items-center space-x-1.5 text-xs font-medium text-slate-200 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-slate-700 transition cursor-pointer"
           title="Equipped Character Class & Upgrades"
         >
           <span>{activeClass.iconSymbol}</span>
-          <span className="text-white">{activeClass.name}</span>
-          <span className="text-amber-400 text-[10px] font-black">Lv.{activeLevel}</span>
+          <span>{activeClass.name}</span>
+          <span className="text-amber-400 font-mono text-[11px]">Lv.{activeLevel}</span>
         </button>
 
-        <div className="flex items-center space-x-1.5 text-xs font-bold text-amber-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-amber-500/30">
+        <div className="flex items-center space-x-1.5 text-xs font-semibold text-amber-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-amber-500/30 font-mono">
           <Coins className="w-3.5 h-3.5" />
           <span>{geo}</span>
         </div>
@@ -1121,14 +1125,14 @@ function UnifiedHeader({
           <div className="flex items-center space-x-1.5">
             <button
               onClick={onOpenLogin}
-              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-indigo-500/40 rounded-lg text-xs font-bold text-indigo-300 flex items-center space-x-1 cursor-pointer"
+              className="px-2.5 py-1 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-medium text-slate-200 flex items-center space-x-1 cursor-pointer"
             >
-              <User className="w-3.5 h-3.5 text-indigo-400" />
+              <User className="w-3.5 h-3.5 text-sky-400" />
               <span className="truncate max-w-[80px]">{currentUser.username}</span>
             </button>
             <button
               onClick={onLogout}
-              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg text-xs font-bold cursor-pointer"
+              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg text-xs transition cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -1137,7 +1141,7 @@ function UnifiedHeader({
         ) : (
           <button
             onClick={onOpenLogin}
-            className="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black rounded-lg transition flex items-center space-x-1 shadow cursor-pointer uppercase"
+            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold rounded-lg transition flex items-center space-x-1 shadow-sm cursor-pointer"
           >
             <User className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Login</span>
@@ -1246,6 +1250,32 @@ export default function GameArena() {
   // Prevent hydration mismatch (especially with Dark Reader extension)
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Fullscreen state and sync
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (typeof document !== 'undefined') {
+        setIsFullscreen(Boolean(document.fullscreenElement));
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
   }, []);
 
   // Load from LocalStorage
@@ -1799,12 +1829,25 @@ export default function GameArena() {
     playSound('cosmic');
   };
 
-  // Launch Stage Test: Checks session cache or queries Gemini for 10 dynamic MCQs, then enters Combat Arena
+  // Launch Stage Test: Checks session cache or queries Gemini for dynamic MCQs, then enters Combat Arena
   const handleLaunchStageTest = async (stage: WorldStageNode) => {
     const courseId = selectedCourse?.id || 'course-mechanics';
     const stageKey = `${courseId}_s${stage.stageNumber}`;
     const nextAttempt = (stageAttemptCounts[stageKey] || 0) + 1;
     setStageAttemptCounts(prev => ({ ...prev, [stageKey]: nextAttempt }));
+
+    // Request native fullscreen for distraction-free exam environment
+    if (typeof document !== 'undefined' && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
+    if (stage.stageNumber === 5 || stage.isBoss) {
+      const extraHearts = getCourseHearts(courseId);
+      if (extraHearts === 0) {
+        triggerStanceNotification('⚠️ CRITICAL: Final Boss Sovereign strikes deal 3-4 Hearts! Extra Hearts from Soul Ward Forge strongly recommended!');
+        addLog('⚠️ [APEX BOSS WARNING] Sovereign Final Boss strikes deal 3-4 Hearts per error and emit Phase 2 shockwaves. Extra Hearts from the Soul Ward Forge are critical to survive!');
+      }
+    }
 
     setCurrentPrepStage(stage);
     setIsPreparingStageTest(true);
@@ -1835,7 +1878,7 @@ export default function GameArena() {
       if (initialCourseHearts > 0) {
         addLog(`▶ [Soul Wards] Activated ${initialCourseHearts} Course Extra Heart(s) to absorb wrong answer penalties!`);
       }
-      addLog(`▶ Began Stage ${stage.stageNumber} Test: ${stage.name}! (${sourceName}: 10 dynamic battle MCQs loaded). Boss: ${stageBoss.name}!`);
+      addLog(`▶ Began Stage ${stage.stageNumber} Test: ${stage.name}! (${sourceName}: ${prioritized.length} battle MCQs loaded). Boss: ${stageBoss.name}!`);
     };
 
     // 1. Check Session Cache
@@ -1933,10 +1976,17 @@ export default function GameArena() {
     }));
     addXp(150);
     addGeo(100);
+
+    if (typeof document !== 'undefined' && document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
   };
 
   // Exit Test to World Map
   const handleExitTest = () => {
+    if (typeof document !== 'undefined' && document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
     setActiveTestStage(null);
     setGameState('title');
     setMainTab('worldmap');
@@ -2165,6 +2215,8 @@ export default function GameArena() {
       const guardianMitigationPct = guardianStats ? guardianStats.primaryValue : 0;
 
       const calcResult = calculateIncomingDamage({
+        stageNumber: activeTestStage?.stageNumber,
+        bossDamagePerStrike: boss.damagePerStrike,
         bossDifficultyLabel: boss.difficultyLabel,
         bossPhase,
         heroId: activeHero.id,
@@ -2412,6 +2464,45 @@ export default function GameArena() {
         triggerStanceNotification(`🌿 RESILIENCE: +${p2Heal} Hearts Phase 2 Recovery!`);
       }
       addLog(`▶ ${boss.name} unlocked PHASE 2: ${boss.phase2TransformationName}!`);
+
+      // Stage 5 Apex Final Boss Phase 2 Sovereign Shockwave
+      if (activeTestStage?.stageNumber === 5) {
+        const activeCourseId = selectedCourse?.id;
+        if (activeCourseId && courseBattleHearts > 0) {
+          const consumeRes = consumeCourseHeart(activeCourseId);
+          if (consumeRes.heartAbsorbed) {
+            setCourseBattleHearts(consumeRes.remainingHearts);
+            playSound('cosmic');
+            triggerStanceNotification(`🛡️ SOUL WARD: Extra Heart absorbed ${boss.name}'s Phase 2 Sovereign Shockwave! (${consumeRes.remainingHearts} Extra Heart(s) left)`);
+            addLog(`▶ [Soul Ward] Course Extra Heart absorbed ${boss.name}'s Phase 2 Sovereign Shockwave! Base Hearts protected!`);
+            setDamagePopup({
+              amount: 0,
+              text: '💖 SOUL WARD (SHOCKWAVE ABSORBED)',
+              isPlayerDamage: true
+            });
+            setTimeout(() => setDamagePopup(null), 1200);
+          }
+        } else {
+          playSound('hurt');
+          setPlayerHurt(true);
+          setHeroAnimState('hurt');
+          setScreenShake('heavy');
+          setPlayerHp((prev) => Math.max(1, prev - STAGE_5_PHASE2_BURST_DAMAGE));
+          setDamagePopup({
+            amount: STAGE_5_PHASE2_BURST_DAMAGE,
+            text: `-${STAGE_5_PHASE2_BURST_DAMAGE} Hearts (SOVEREIGN SHOCKWAVE)`,
+            isPlayerDamage: true
+          });
+          triggerStanceNotification(`⚠️ SOVEREIGN SHOCKWAVE: ${boss.name}'s Phase 2 surge dealt -${STAGE_5_PHASE2_BURST_DAMAGE} Hearts! Extra Hearts needed to absorb!`);
+          addLog(`▶ [Sovereign Shockwave] Without Soul Ward Extra Hearts, ${boss.name}'s Phase 2 release blasted you for -${STAGE_5_PHASE2_BURST_DAMAGE} Hearts!`);
+          setTimeout(() => {
+            setPlayerHurt(false);
+            setHeroAnimState('idle');
+            setScreenShake('none');
+            setDamagePopup(null);
+          }, 1200);
+        }
+      }
     }, 2800);
   };
 
@@ -2453,7 +2544,7 @@ export default function GameArena() {
   // -------------------------------------------------------------
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex items-center justify-center font-mono select-none">
+      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex items-center justify-center select-none">
         <div className="flex flex-col items-center space-y-3">
           <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs text-amber-400 font-bold uppercase tracking-widest">
@@ -2470,7 +2561,7 @@ export default function GameArena() {
   if (!activeTestStage && gameState !== 'shop') {
     if (mainTab === 'dashboard') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2525,7 +2616,7 @@ export default function GameArena() {
 
     if (mainTab === 'courses') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2589,7 +2680,7 @@ export default function GameArena() {
       const currentCourseStages = unlockedCourses[selectedCourse.id]?.stages || DEFAULT_MAP_STAGES;
 
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2680,7 +2771,7 @@ export default function GameArena() {
     if (mainTab === 'ai-analysis') {
       const activeAnalysis = currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta;
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2731,7 +2822,7 @@ export default function GameArena() {
 
     if (mainTab === 'characters') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2785,7 +2876,7 @@ export default function GameArena() {
 
     if (mainTab === 'diagnostic') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2830,7 +2921,7 @@ export default function GameArena() {
 
     if (mainTab === 'skilltree') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2877,7 +2968,7 @@ export default function GameArena() {
 
     if (mainTab === 'quests') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2926,7 +3017,7 @@ export default function GameArena() {
 
     if (mainTab === 'achievements') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2971,7 +3062,7 @@ export default function GameArena() {
 
     if (mainTab === 'notes') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -3025,7 +3116,7 @@ export default function GameArena() {
 
     if (mainTab === 'labs') {
       return (
-        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -3086,7 +3177,7 @@ export default function GameArena() {
     const canAfford = geo >= inspectedHero.geoCost;
 
     return (
-      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
         <UnifiedHeader 
           mainTab={mainTab} 
           setMainTab={setMainTab} 
@@ -3102,37 +3193,36 @@ export default function GameArena() {
           unclaimedAchievementsCount={unclaimedAchievementsCount}
         />
         <main className="flex-1 flex flex-col items-center justify-center p-3 md:p-6 select-none overflow-hidden relative">
-        <div className="absolute inset-0 crt-overlay z-30 pointer-events-none" />
         <BleachArenaBackground bgType="seireitei" />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-4xl bg-[#090d16]/95 border-4 border-amber-500/80 rounded-2xl p-4 md:p-6 shadow-[0_0_80px_rgba(245,158,11,0.25)] z-10 relative pixel-art flex flex-col max-h-[92vh] overflow-y-auto"
+          className="w-full max-w-4xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-4 md:p-6 shadow-2xl z-10 relative flex flex-col max-h-[92vh] overflow-y-auto"
         >
           {/* Shop Header */}
-          <div className="flex flex-wrap justify-between items-center pb-4 mb-4 border-b-2 border-slate-800 gap-3">
+          <div className="flex flex-wrap justify-between items-center pb-4 mb-4 border-b border-slate-800 gap-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setGameState('title')}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4 text-cyan-400" /> Sanctuary
+                <ChevronLeft className="w-4 h-4 text-sky-400" /> Sanctuary
               </button>
               <div>
-                <h1 className="text-xl md:text-2xl font-black text-amber-300 tracking-wider uppercase drop-shadow-[0_0_20px_#f59e0b] flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-amber-400" /> SEIREITEI ZANPAKUTO VAULT
+                <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-amber-400" /> Seireitei Zanpakuto Vault
                 </h1>
-                <p className="text-[10px] md:text-xs text-slate-400">Offer your earned Geo to awaken iconic Bleach Captains and Substitute Shinigami.</p>
+                <p className="text-xs text-slate-400">Offer your earned Geo to awaken iconic Bleach Captains and Substitute Shinigami.</p>
               </div>
             </div>
 
             {/* Geo Purse */}
-            <div className="bg-slate-950 border-2 border-amber-500/60 rounded-xl px-4 py-2 flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-              <Coins className="w-5 h-5 text-amber-400 animate-bounce" />
+            <div className="bg-slate-950/80 border border-amber-500/30 rounded-xl px-3.5 py-1.5 flex items-center gap-2.5">
+              <Coins className="w-5 h-5 text-amber-400" />
               <div>
-                <span className="text-[9px] text-slate-400 font-bold uppercase block">Your Geo Purse</span>
-                <span className="text-base font-black text-amber-300 tracking-wider">{geo} GEO</span>
+                <span className="text-[10px] text-slate-400 font-medium uppercase block">Your Geo Purse</span>
+                <span className="text-sm font-bold text-amber-400 font-mono tracking-wide">{geo} GEO</span>
               </div>
             </div>
           </div>
@@ -3140,7 +3230,7 @@ export default function GameArena() {
           {/* Main Showcase & Grid Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-4">
             {/* Left: Interactive Live Hero Showcase */}
-            <div className="lg:col-span-5 bg-gradient-to-b from-slate-950 to-[#04060c] border-2 border-slate-800 rounded-xl p-5 flex flex-col items-center justify-between relative overflow-hidden">
+            <div className="lg:col-span-5 bg-slate-950/60 border border-slate-800 rounded-xl p-5 flex flex-col items-center justify-between relative overflow-hidden">
               <div className="w-full flex justify-between items-center z-10">
                 <span className="text-[10px] bg-slate-900 text-amber-300 px-2.5 py-1 rounded font-black border border-amber-500/40 uppercase">
                   {inspectedHero.tag}
@@ -3474,7 +3564,7 @@ export default function GameArena() {
   // -------------------------------------------------------------
   if (gameState === 'title') {
     return (
-      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col">
         <UnifiedHeader 
           mainTab={mainTab} 
           setMainTab={setMainTab} 
@@ -3490,38 +3580,37 @@ export default function GameArena() {
           unclaimedAchievementsCount={unclaimedAchievementsCount}
         />
         <main className="flex-1 flex flex-col items-center justify-center p-4 select-none overflow-hidden relative">
-        <div className="absolute inset-0 crt-overlay z-30 pointer-events-none" />
         <BleachArenaBackground bgType="seireitei" />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-xl bg-[#090d16]/95 border-4 border-amber-500/90 rounded-2xl p-6 shadow-[0_0_80px_rgba(245,158,11,0.3)] z-10 text-center relative pixel-art"
+          className="w-full max-w-xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 shadow-2xl z-10 text-center relative"
         >
           {/* Title Header */}
-          <div className="mb-6 border-b-2 border-slate-800 pb-4">
+          <div className="mb-6 border-b border-slate-800 pb-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] bg-amber-500 text-slate-950 px-3 py-1 rounded font-black tracking-widest uppercase">
-                BLEACH ANIME PROGRAMMING RPG
+              <span className="text-[11px] bg-amber-500/15 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full font-semibold uppercase tracking-wider">
+                BLEACH RPG TRIALS
               </span>
               <button
                 onClick={() => setGameState('shop')}
-                className="bg-amber-950/80 hover:bg-amber-900/90 border border-amber-500/60 text-amber-300 px-3 py-1 rounded text-xs font-black flex items-center gap-1.5 transition shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse"
+                className="bg-slate-950/80 hover:bg-slate-850 border border-amber-500/30 text-amber-300 px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition font-mono cursor-pointer"
               >
                 <Coins className="w-3.5 h-3.5 text-amber-400" /> {geo} GEO • ARMORY
               </button>
             </div>
 
-            <h1 className="text-2xl md:text-4xl font-black text-amber-300 tracking-wider mt-3 drop-shadow-[0_0_25px_rgba(245,158,11,0.8)] uppercase">
-              CHRONICLES OF SEIREITEI
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight mt-3">
+              Chronicles of Seireitei
             </h1>
-            <p className="text-slate-400 text-xs mt-2 max-w-md mx-auto">
+            <p className="text-slate-400 text-sm mt-1.5 max-w-md mx-auto">
               Command legendary Bleach heroes against Grimmjow, Ulquiorra, and Yhwach across iconic anime battlegrounds.
             </p>
           </div>
 
           {/* Active Champion Preview Card */}
-          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 mb-5 flex flex-col items-center relative">
+          <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 mb-5 flex flex-col items-center relative">
             <BleachPixelSprite
               heroId={activeHero.id}
               animState="idle"
@@ -3856,29 +3945,11 @@ export default function GameArena() {
   }
 
   // -------------------------------------------------------------
-  // VIEW 5: ACTIVE BATTLE ARENA
+  // VIEW 5: ACTIVE BATTLE ARENA (FULLSCREEN DISTRACTION-FREE)
   // -------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
-      <UnifiedHeader 
-        mainTab={mainTab} 
-        setMainTab={setMainTab} 
-        geo={geo} 
-        currentUser={currentUser}
-        onOpenLogin={() => setIsLoginModalOpen(true)}
-        onLogout={() => setCurrentUser(null)}
-        activeTestStage={activeTestStage}
-        onExitTest={handleExitTest}
-        hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
-        selectedClassId={selectedClassId}
-        classLevels={classLevels}
-        playerLevelInfo={playerLevelInfo}
-        streakDays={dailyStreakState.streakDays}
-        unclaimedQuestsCount={unclaimedQuestsCount}
-        unclaimedAchievementsCount={unclaimedAchievementsCount}
-      />
-      <main className="flex-1 flex flex-col items-center justify-center p-3 md:p-6 font-mono select-none overflow-hidden relative">
-      <div className="absolute inset-0 crt-overlay z-30 pointer-events-none" />
+    <div className="fixed inset-0 z-50 bg-[#020617] text-slate-100 flex flex-col overflow-y-auto">
+      <main className="flex-1 flex flex-col items-center justify-center p-3 md:p-6 select-none overflow-hidden relative">
       <BleachArenaBackground bgType={boss.bgType} />
 
       {/* PHASE 2 CUTSCENE OVERLAY */}
@@ -3899,11 +3970,11 @@ export default function GameArena() {
               transition={{ duration: 0.5 }}
               className="space-y-4 max-w-xl"
             >
-              <span className="text-xs bg-red-600 text-white px-3 py-1 rounded font-black tracking-widest uppercase shadow-[0_0_15px_#dc2626]">
-                ⚡ PHASE II // {boss.phase2TransformationName}
+              <span className="text-xs bg-rose-600 text-white px-3 py-1 rounded font-bold uppercase tracking-wider">
+                ⚡ Phase II // {boss.phase2TransformationName}
               </span>
-              <h2 className="text-3xl md:text-5xl font-black text-amber-300 tracking-wider uppercase drop-shadow-[0_0_30px_#f59e0b]">
-                {boss.name.toUpperCase()}
+              <h2 className="text-3xl md:text-5xl font-bold text-amber-400 tracking-tight">
+                {boss.name}
               </h2>
               <p className="text-sm md:text-base italic text-slate-200 border-l-2 border-amber-500 pl-4 py-1 text-left">
                 {boss.phase2Quote}
@@ -3922,7 +3993,7 @@ export default function GameArena() {
             : {}
         }
         transition={{ duration: 0.3 }}
-        className="w-full max-w-2xl bg-[#090d16]/95 border-4 border-amber-500/80 rounded-2xl p-4 md:p-6 shadow-[0_0_60px_rgba(245,158,11,0.25)] z-10 relative pixel-art"
+        className="w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-4 md:p-6 shadow-2xl z-10 relative"
       >
         {/* Top Header */}
         <div className="flex flex-wrap justify-between items-center pb-3 mb-3 border-b-2 border-slate-800 gap-2">
@@ -3981,6 +4052,14 @@ export default function GameArena() {
               title={soundEnabled ? 'Mute' : 'Enable Audio'}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4 text-rose-400" />}
+            </button>
+
+            <button
+              onClick={toggleFullscreen}
+              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-400 border border-slate-700 transition"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen (Distraction-Free)'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4 text-amber-400" /> : <Maximize2 className="w-4 h-4 text-amber-400" />}
             </button>
 
             <button

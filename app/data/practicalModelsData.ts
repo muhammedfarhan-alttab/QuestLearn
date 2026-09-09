@@ -1009,45 +1009,45 @@ export const PRACTICAL_MODELS_CATALOG: Record<string, Record<number, PracticalMo
           key: 'charge',
           label: 'Particle Charge (q)',
           symbol: 'q',
-          min: 1,
-          max: 10,
-          step: 1,
+          min: 0.1,
+          max: 25,
+          step: 0.5,
           defaultValue: 4,
           unit: 'μC',
-          description: 'Charge magnitude of the traveling ion.'
+          description: 'Charge magnitude of the traveling ion (increased range up to 25 μC).'
         },
         {
           key: 'velocity',
           label: 'Particle Speed (v)',
           symbol: 'v',
           min: 10,
-          max: 100,
+          max: 300,
           step: 5,
           defaultValue: 50,
           unit: 'm/s',
-          description: 'Initial velocity entering the magnetic zone.'
+          description: 'Initial velocity entering the magnetic zone (increased range up to 300 m/s).'
         },
         {
           key: 'magneticField',
           label: 'Magnetic Field (B)',
           symbol: 'B',
-          min: 0.1,
-          max: 2.0,
-          step: 0.1,
+          min: 0.05,
+          max: 5.0,
+          step: 0.05,
           defaultValue: 0.8,
           unit: 'T',
-          description: 'Perpendicular magnetic flux density.'
+          description: 'Perpendicular magnetic flux density (increased range up to 5.0 T).'
         },
         {
           key: 'angleDeg',
           label: 'Injection Angle (θ)',
           symbol: 'θ',
           min: 0,
-          max: 90,
-          step: 5,
+          max: 180,
+          step: 1,
           defaultValue: 90,
           unit: '°',
-          description: 'Angle between velocity vector and magnetic field.'
+          description: 'Angle between velocity vector and magnetic field (full 0° to 180° range).'
         }
       ],
       formulas: [

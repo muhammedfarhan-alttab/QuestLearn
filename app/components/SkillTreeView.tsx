@@ -111,22 +111,22 @@ export default function SkillTreeView({
     : paths.filter(p => p.id === activePathFilter);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 font-mono animate-in fade-in duration-300">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 animate-in fade-in duration-300">
       
       {/* 1. HERO HEADER */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
-        <div className="absolute -right-24 -top-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
+        <div className="absolute -right-24 -top-24 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase flex items-center space-x-1.5 shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>RPG SKILL TREE SYSTEM</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20 flex items-center space-x-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>RPG Skill Tree System</span>
               </span>
               <span className="text-xs text-slate-500">•</span>
-              <span className="text-xs text-amber-400 font-bold">Player Level {playerLevel}</span>
+              <span className="text-xs text-amber-400 font-semibold font-mono">Player Level {playerLevel}</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">

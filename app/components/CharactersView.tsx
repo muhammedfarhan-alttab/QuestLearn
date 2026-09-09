@@ -1100,24 +1100,24 @@ export default function CharactersView({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 font-mono text-slate-100 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 text-slate-100 space-y-6">
       {/* Sub-Tab Switcher: Character Classes vs Bleach Armory */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-950/95 p-2 rounded-2xl border-2 border-slate-800 shadow-2xl">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 shadow-xl">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setCharacterSubTab('classes')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center space-x-2 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center space-x-2 cursor-pointer ${
               characterSubTab === 'classes'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/25'
+                ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <Crown className="w-4 h-4" />
             <span>Character Classes (Levels 1-10)</span>
             <span
-              className={`text-[10px] px-2 py-0.5 rounded-md font-black ${
+              className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
                 characterSubTab === 'classes'
-                  ? 'bg-slate-950/40 text-slate-950'
+                  ? 'bg-slate-950/30 text-slate-950'
                   : 'bg-slate-900 text-amber-300 border border-slate-700'
               }`}
             >

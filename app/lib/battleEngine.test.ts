@@ -176,3 +176,32 @@ test('executeRevive handles Phoenix Rebirth correctly with Geo or Immortal class
   assert.equal(failedRevive.nextGeo, 25);
   assert.match(failedRevive.error || '', /Need 25 more Geo/);
 });
+
+test('Progressive boss damage scaling across stages (Stage 1 = 1 Heart, Stage 5 = 3-4 Hearts)', () => {
+  // Stage 1
+  const s1Result = calculateIncomingDamage({ stageNumber: 1, bossPhase: 1 });
+  assert.equal(s1Result.damageDealt, 1, 'Stage 1 deals 1 Heart');
+
+  // Stage 2
+  const s2P1 = calculateIncomingDamage({ stageNumber: 2, bossPhase: 1 });
+  const s2P2 = calculateIncomingDamage({ stageNumber: 2, bossPhase: 2 });
+  assert.equal(s2P1.damageDealt, 1, 'Stage 2 Phase 1 deals 1 Heart');
+  assert.equal(s2P2.damageDealt, 2, 'Stage 2 Phase 2 deals 2 Hearts');
+
+  // Stage 3
+  const s3Result = calculateIncomingDamage({ stageNumber: 3, bossPhase: 1 });
+  assert.equal(s3Result.damageDealt, 2, 'Stage 3 deals 2 Hearts');
+
+  // Stage 4
+  const s4P1 = calculateIncomingDamage({ stageNumber: 4, bossPhase: 1 });
+  const s4P2 = calculateIncomingDamage({ stageNumber: 4, bossPhase: 2 });
+  assert.equal(s4P1.damageDealt, 2, 'Stage 4 Phase 1 deals 2 Hearts');
+  assert.equal(s4P2.damageDealt, 3, 'Stage 4 Phase 2 deals 3 Hearts');
+
+  // Stage 5 Apex Final Boss
+  const s5P1 = calculateIncomingDamage({ stageNumber: 5, bossPhase: 1 });
+  const s5P2 = calculateIncomingDamage({ stageNumber: 5, bossPhase: 2 });
+  assert.equal(s5P1.damageDealt, 3, 'Stage 5 Phase 1 deals 3 Hearts');
+  assert.equal(s5P2.damageDealt, 4, 'Stage 5 Phase 2 deals 4 Hearts');
+});
+

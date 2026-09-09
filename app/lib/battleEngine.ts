@@ -64,10 +64,14 @@ export function calculateHeal(currentHp: number, healAmount: number, maxHp: numb
   };
 }
 
+export const STAGE_5_PHASE2_BURST_DAMAGE = 2; // Unavoidable Sovereign Reiatsu Shockwave at Stage 5 Phase 2
+
 export interface DamageCalculationParams {
   bossDifficultyLabel?: string;
   bossPhase?: number;
   baseDamage?: number;
+  stageNumber?: number; // 1 (Introductory) to 5 (Final Apex Boss)
+  bossDamagePerStrike?: number; // Configured base damage from boss data
   heroId?: string;
   guardianMitigationPct?: number; // 25 to 70
   immortalShieldsRemaining?: number;
@@ -82,26 +86,47 @@ export interface DamageCalculationResult {
 }
 
 /**
- * Pure calculation of incoming boss strike damage factoring in class passives and hero traits.
+ * Pure calculation of incoming boss strike damage factoring in class passives, stage scaling, and hero traits.
  */
 export function calculateIncomingDamage(params: DamageCalculationParams): DamageCalculationResult {
   const {
     bossDifficultyLabel = 'Intermediate',
     bossPhase = 1,
     baseDamage,
+    stageNumber,
+    bossDamagePerStrike,
     heroId,
     guardianMitigationPct = 0,
     immortalShieldsRemaining = 0,
     randomRoll = Math.random()
   } = params;
 
-  // 1. Base damage determination in Hearts (default 1 Heart)
+  // 1. Progressive damage determination in Hearts
   let damage = baseDamage ?? 1;
   if (baseDamage === undefined) {
-    if (bossPhase === 2 && (bossDifficultyLabel === 'Advanced' || bossDifficultyLabel === 'Supreme Boss')) {
-      damage = 2; // Phase 2 supreme bosses hit for 2 Hearts
+    if (stageNumber === 5 || bossDifficultyLabel === 'Supreme Boss') {
+      // Stage 5 Apex Final Boss: 3 Hearts in Phase 1, 4 Hearts in Phase 2!
+      damage = bossPhase === 2 ? 4 : 3;
+    } else if (stageNumber === 4 || bossDifficultyLabel === 'Advanced') {
+      // Stage 4: 2 Hearts in Phase 1, 3 Hearts in Phase 2
+      damage = bossPhase === 2 ? 3 : 2;
+    } else if (stageNumber === 3) {
+      // Stage 3: 2 Hearts in both phases
+      damage = 2;
+    } else if (stageNumber === 2) {
+      // Stage 2: 1 Heart in Phase 1, 2 Hearts in Phase 2
+      damage = bossPhase === 2 ? 2 : 1;
+    } else if (stageNumber === 1) {
+      // Stage 1: 1 Heart in both phases
+      damage = 1;
+    } else if (bossPhase === 2 && (bossDifficultyLabel === 'Advanced' || bossDifficultyLabel === 'Supreme Boss')) {
+      damage = 2;
     } else {
-      damage = 1; // Standard strike deals 1 Heart
+      damage = 1;
+    }
+
+    if (typeof bossDamagePerStrike === 'number' && bossDamagePerStrike > damage) {
+      damage = bossDamagePerStrike;
     }
   }
 
@@ -124,7 +149,7 @@ export function calculateIncomingDamage(params: DamageCalculationParams): Damage
         nullifiedReason: `Guardian Aegis fully absorbed damage (-${guardianMitigationPct}%)`
       };
     } else if (damage > 1) {
-      damage = 1;
+      damage = Math.max(1, Math.round(damage * (1 - guardianMitigationPct / 100)));
     }
   }
 

@@ -66,21 +66,21 @@ export default function QuestsAndStreaksView({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 font-mono animate-in fade-in duration-300">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 animate-in fade-in duration-300">
       
-      {/* 1. HERO STREAK & DUOLINGO-STYLE FLAME BANNER */}
-      <div className="bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      {/* 1. HERO STREAK & FLAME BANNER */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center space-x-5">
             <div className="relative">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 flex items-center justify-center text-4xl shadow-xl shadow-amber-500/30 animate-pulse">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-3xl">
                 🔥
               </div>
               {streakState.streakShieldCount > 0 && (
-                <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-1 rounded-full border-2 border-slate-900" title="Streak Freeze Active">
+                <div className="absolute -bottom-2 -right-2 bg-sky-600 text-white p-1 rounded-full border-2 border-slate-900" title="Streak Freeze Active">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
               )}

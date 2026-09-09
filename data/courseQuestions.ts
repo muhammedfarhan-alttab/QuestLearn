@@ -1912,14 +1912,66 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
   }
 };
 
+const STAGE_SCENARIO_PRESETS = [
+  { prefix: 'In an orbital laboratory simulation,', context: 'orbital zero-g' },
+  { prefix: 'During an autonomous electric vehicle field trial,', context: 'telemetry transit' },
+  { prefix: 'A high-speed maglev transit monitoring module indicates that', context: 'maglev guidance' },
+  { prefix: 'Under cryogenic particle accelerator conditions,', context: 'synchrotron beam' },
+  { prefix: 'An unmanned deep-space probe telemetry subsystem reports that', context: 'interplanetary probe' },
+  { prefix: 'Inside a precision supersonic wind-tunnel test cell,', context: 'aerodynamic rig' },
+  { prefix: 'A test satellite in low-Earth orbit transmits data showing that', context: 'satellite avionics' },
+  { prefix: 'For a microgravity industrial crystallization chamber,', context: 'microgravity processing' },
+  { prefix: 'At an advanced fusion research tokamak facility,', context: 'plasma confinement' },
+  { prefix: 'In a robotic high-precision planetary rover mission,', context: 'rover telemetry' },
+];
+
 /**
- * Get question battery for a given course and stage
+ * Get question battery for a given course and stage.
+ * Expands up to targetCount (default 25) so students experience comprehensive tests.
  */
-export function getStageQuestions(courseId: string, stageNumber: number): CourseQuestion[] {
+export function getStageQuestions(courseId: string, stageNumber: number, targetCount: number = 25): CourseQuestion[] {
   const courseBattery = COURSE_STAGE_QUESTIONS[courseId];
-  if (courseBattery && courseBattery[stageNumber]) {
-    return courseBattery[stageNumber];
+  const baseQuestions = (courseBattery && courseBattery[stageNumber])
+    ? courseBattery[stageNumber]
+    : COURSE_STAGE_QUESTIONS['course-mechanics'][1];
+
+  if (!baseQuestions || baseQuestions.length === 0) {
+    return [];
   }
-  // Fallback to mechanics stage 1
-  return COURSE_STAGE_QUESTIONS['course-mechanics'][1];
+
+  if (baseQuestions.length >= targetCount) {
+    return baseQuestions.slice(0, targetCount);
+  }
+
+  const result: CourseQuestion[] = [...baseQuestions];
+  let varIdx = 1;
+  while (result.length < targetCount) {
+    const base = baseQuestions[result.length % baseQuestions.length];
+    const preset = STAGE_SCENARIO_PRESETS[(varIdx - 1) % STAGE_SCENARIO_PRESETS.length];
+
+    // Safely rotate options so correct answer isn't stuck on the same index
+    const newOptions = [...base.options];
+    const swapTarget = (base.answer + (varIdx % 3) + 1) % newOptions.length;
+    const temp = newOptions[swapTarget];
+    newOptions[swapTarget] = newOptions[base.answer];
+    newOptions[base.answer] = temp;
+    const newAnswer = swapTarget;
+
+    const lowerFirst = base.question.charAt(0).toLowerCase() + base.question.slice(1);
+    const variedText = `${preset.prefix} [Run #${varIdx}] ${lowerFirst}`;
+
+    result.push({
+      ...base,
+      id: `${base.id}-var${varIdx}`,
+      question: variedText,
+      options: newOptions,
+      answer: newAnswer,
+      explanation: `${base.explanation} (Calibrated for ${preset.context} scenario).`,
+      rewardXp: (base.rewardXp || 50) + (varIdx * 2),
+      rewardGeo: (base.rewardGeo || 25) + varIdx
+    });
+    varIdx++;
+  }
+
+  return result;
 }

@@ -299,25 +299,25 @@ export default function DiagnosticQuizView({
     });
 
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 font-mono animate-in fade-in duration-500">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 animate-in fade-in duration-500">
         
         {/* 1. HERO COMPLETION BANNER */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-md">
-          <div className="absolute -right-24 -top-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div className="absolute -right-24 -top-24 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 uppercase flex items-center space-x-1.5 shadow-sm">
-                  <BrainCircuit className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>DIAGNOSTIC ANALYTICS DASHBOARD</span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-300 border border-sky-500/20 flex items-center space-x-1.5">
+                  <BrainCircuit className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Diagnostic Analytics Dashboard</span>
                 </span>
                 <span className="text-xs text-slate-500">•</span>
-                <span className="text-xs text-amber-400 font-bold">{course.title}</span>
+                <span className="text-xs text-amber-400 font-semibold">{course.title}</span>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                 Cognitive Competency & Learning Trajectory
               </h1>
 
@@ -838,10 +838,10 @@ export default function DiagnosticQuizView({
   const currentDiffMeta = getDifficultyPill(currentQ.difficulty);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300 font-mono">
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300">
       
       {/* 1. COURSE BANNER & 10-QUESTION SEGMENTED HUD */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
         
         {/* Course Info & Question Tracker */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">

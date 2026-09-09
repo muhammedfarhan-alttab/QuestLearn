@@ -203,10 +203,10 @@ export default function InteractiveLabView({
   const isMastered = completedTaskIds.length === modelConfig.guidedTasks.length && modelConfig.guidedTasks.length > 0;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-6 font-mono text-slate-100">
+    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-6 text-slate-100">
       
       {/* 1. Header & Navigation Controls */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 mb-6 shadow-xl backdrop-blur-md">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6 mb-6 shadow-xl backdrop-blur-md">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           
           <div>
