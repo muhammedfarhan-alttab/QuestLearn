@@ -17,7 +17,7 @@ import {
   Skull,
   Eye,
   CircleDot,
-  Heart,
+  Activity,
   LogOut,
   Flame,
   ShieldCheck,
@@ -39,10 +39,16 @@ import {
   BarChart3,
   Layers,
   User,
-  Map
+  Map,
+  FlaskConical,
+  Heart
 } from 'lucide-react';
+import { getCourseHearts, consumeCourseHeart } from './lib/courseHeartsEngine';
 import DashboardView from './components/DashboardView';
 import DiagnosticQuizView from './components/DiagnosticQuizView';
+import AiAnalysisView from './components/AiAnalysisView';
+import { GenerateRoadmapResponse, StudentAnswerItem, GeneratedWorldStageData } from './api/generate-roadmap/types';
+import { generatePersonalizedWorldStages, calculateSkillLevel, SkillLevel } from './lib/diagnosticEngine';
 import LoginModal, { UserProfile } from './components/LoginModal';
 import CoursesView, { CourseData, ACADEMIC_COURSES } from './components/CoursesView';
 import WorldMapView, { WorldStageNode, DEFAULT_MAP_STAGES } from './components/WorldMapView';
@@ -53,10 +59,82 @@ import CharactersView, {
   BLEACH_ROSTER, 
   BleachPixelSprite 
 } from './components/CharactersView';
-import { getStageQuestions } from '../data/courseQuestions';
+import { CLAN_METADATA } from './lib/characterPricing';
+import { prioritizeUnseenQuestions, markQuestionSeen } from './lib/seenQuestions';
+import { getStageQuestions, CourseQuestion } from '../data/courseQuestions';
 import LectureNotesModal from './components/LectureNotesModal';
+import InteractiveLectureNotesView from './components/InteractiveLectureNotesView';
+import InteractiveLabView from './components/InteractiveLabView';
+import InteractiveLabModal from './components/InteractiveLabModal';
+import BattlePrepModal from './components/BattlePrepModal';
+import { getCachedStageQuestions, setCachedStageQuestions } from './lib/questionSessionCache';
 import ProfileInspectionModal, { BleachVillainConfig, InspectedTarget } from './components/ProfileInspectionModal';
 import { BLEACH_BOSS_CATALOG, getStageBoss } from './data/bossesData';
+import { 
+  CharacterClassId, 
+  CHARACTER_CLASSES, 
+  CharacterClassConfig 
+} from './data/characterClassesData';
+import { 
+  CharacterClassLevelsMap, 
+  DEFAULT_CLASS_LEVELS, 
+  loadCharacterClassLevels, 
+  saveCharacterClassLevel, 
+  loadSelectedCharacterClass, 
+  saveSelectedCharacterClass 
+} from './lib/characterClassStorage';
+import {
+  MAX_PLAYER_HEARTS,
+  MAX_PLAYER_HP,
+  clampHp,
+  clampHearts,
+  formatHpDisplay,
+  formatHeartsDisplay,
+  isDefeated,
+  calculateHeal,
+  calculateIncomingDamage,
+  applyDamageWithRevive,
+  executeRevive,
+  PHOENIX_REVIVE_GEO_COST,
+  DEFAULT_REVIVE_HEARTS,
+  DEFAULT_REVIVE_HP
+} from './lib/battleEngine';
+import {
+  getStoredDiagnosticSummary,
+  getLatestDiagnosticSummary
+} from './lib/diagnosticEngine';
+import {
+  calculatePlayerLevel,
+  PlayerLevelInfo,
+  getComboMultiplier,
+  updateDailyStreak,
+  DEFAULT_DAILY_STREAK,
+  DailyStreakState,
+  SKILL_TREE_NODES,
+  canUnlockSkillNode,
+  getActiveSkillBuffs,
+  ActiveSkillBuffs,
+  generateDailyQuests,
+  DailyQuestsState,
+  updateDailyQuestProgress,
+  ACHIEVEMENTS_CATALOG,
+  Achievement,
+  updateAchievementProgress,
+  loadTotalXp,
+  saveTotalXp,
+  loadUnlockedSkillNodes,
+  saveUnlockedSkillNodes,
+  loadDailyStreakState,
+  saveDailyStreakState,
+  loadDailyQuestsState,
+  saveDailyQuestsState,
+  loadAchievementsState,
+  saveAchievementsState
+} from './lib/rpgEngine';
+import SkillTreeView from './components/SkillTreeView';
+import QuestsAndStreaksView from './components/QuestsAndStreaksView';
+import AchievementsView from './components/AchievementsView';
+import LevelUpModal from './components/LevelUpModal';
 
 // -------------------------------------------------------------
 // Algorithm: AI Diagnostic to Personalized World Map Plan
@@ -64,369 +142,26 @@ import { BLEACH_BOSS_CATALOG, getStageBoss } from './data/bossesData';
 export function buildPersonalizedStages(
   courseId: string, 
   overallMastery: number, 
-  diagnosedGaps: string[]
+  diagnosedGaps: string[] = [],
+  weakTopics: string[] = [],
+  strongTopics: string[] = [],
+  scorePercentage?: number,
+  aiCustomStages?: GeneratedWorldStageData[]
 ): WorldStageNode[] {
-  const masteryPct = Math.round(overallMastery * 100);
-  const hasGaps = diagnosedGaps.length > 0;
+  const score = typeof scorePercentage === 'number'
+    ? scorePercentage
+    : Math.round(overallMastery * 100);
+  const skillLevel = calculateSkillLevel(Math.round((score / 100) * 10));
 
-  if (courseId === 'course-calculus') {
-    return [
-      {
-        id: 1,
-        stageNumber: 1,
-        name: 'Limits & Asymptotic Boundaries',
-        conceptFocus: 'Foundational Limits & Continuity',
-        realmLocation: 'Seireitei Library // Central 46 Archive',
-        kanji: '極限の領域',
-        lore: 'The boundary where infinitesimals converge towards precise analytical limits under Soul Society logic.',
-        themeColor: '#818cf8',
-        status: hasGaps ? 'remediation_priority' : 'unlocked',
-        masteryPct: Math.max(30, masteryPct - 15),
-        stars: 0,
-        isBoss: false,
-        bossId: 'grand_fisher',
-        bossName: 'Grand Fisher (Foundational Hollow)',
-        tier: 'easy'
-      },
-      {
-        id: 2,
-        stageNumber: 2,
-        name: 'Differential Operator & Power Chains',
-        conceptFocus: 'Chain Rule, Product Rule & Implicit Slopes',
-        realmLocation: 'Senkaimon Dimensional Corridor',
-        kanji: '微分回廊',
-        lore: 'Deconstruct accelerating velocities into instantaneous tangent rates through high-order derivative mastery.',
-        themeColor: '#38bdf8',
-        status: 'locked',
-        masteryPct: Math.max(20, masteryPct - 25),
-        stars: 0,
-        isBoss: false,
-        bossId: 'renji_boss',
-        bossName: 'Renji Abarai (Roar Zabimaru)',
-        tier: 'easy'
-      },
-      {
-        id: 3,
-        stageNumber: 3,
-        name: 'Concavity & Stationary Extremum',
-        conceptFocus: 'Optimization, Inflection Points & Mean Value',
-        realmLocation: 'Sokyoku Hill Ridge',
-        kanji: '極値の丘',
-        lore: 'Analyze curvature, critical extrema, and maximum output boundaries across the execution plateau.',
-        themeColor: '#f472b6',
-        status: 'locked',
-        masteryPct: 20,
-        stars: 0,
-        isBoss: false,
-        bossId: 'grimmjow',
-        bossName: 'Grimmjow Jaegerjaquez (Pantera)',
-        tier: 'intermediate'
-      },
-      {
-        id: 4,
-        stageNumber: 4,
-        name: 'Riemann Accumulation & Integrals',
-        conceptFocus: 'Definite Integrals & Fundamental Theorem',
-        realmLocation: 'Wandenreich Frozen Monolith',
-        kanji: '積分氷壁',
-        lore: 'Sum infinite infinitesimal slices of Reiatsu to calculate total accumulated energy beneath the function curve.',
-        themeColor: '#0284c7',
-        status: 'locked',
-        masteryPct: 15,
-        stars: 0,
-        isBoss: false,
-        bossId: 'szayelaporro',
-        bossName: 'Szayelaporro Granz (Calculus Architect)',
-        tier: 'intermediate'
-      },
-      {
-        id: 5,
-        stageNumber: 5,
-        name: 'Grand Apex Demigod Calculus Exam',
-        conceptFocus: 'Comprehensive Differential & Integral Mastery',
-        realmLocation: 'Throne of the Quincy Emperor // Silbern',
-        kanji: '全知全能の玉座',
-        lore: 'Face Sosuke Aizen in the realm of infinite limits and transcendental calculus series!',
-        themeColor: '#eab308',
-        status: 'locked',
-        masteryPct: 10,
-        stars: 0,
-        isBoss: true,
-        bossId: 'aizen_boss',
-        bossName: 'Sosuke Aizen (Transcendent Hōgyoku)',
-        tier: 'hard'
-      }
-    ];
-  }
-
-  if (courseId === 'course-electromagnetism') {
-    return [
-      {
-        id: 1,
-        stageNumber: 1,
-        name: 'Coulombic Point Charges & Fields',
-        conceptFocus: 'Inverse-Square Force & Electric Dipoles',
-        realmLocation: 'Karakura High-Voltage Substation',
-        kanji: '電荷の領域',
-        lore: 'Trace electric flux vectors radiated by charged spiritual particles across the physical barrier.',
-        themeColor: '#f59e0b',
-        status: hasGaps ? 'remediation_priority' : 'unlocked',
-        masteryPct: Math.max(30, masteryPct - 15),
-        stars: 0,
-        isBoss: false,
-        bossId: 'grand_fisher',
-        bossName: 'Grand Fisher (Coulombic Spark)',
-        tier: 'easy'
-      },
-      {
-        id: 2,
-        stageNumber: 2,
-        name: 'Gaussian Enclosure & Symmetrical Flux',
-        conceptFocus: 'Gauss Law & Cylindrical/Planar Symmetry',
-        realmLocation: 'Garganta Void Gate',
-        kanji: 'ガウスの境界',
-        lore: 'Construct closed Gaussian surfaces through dimensional fissures to integrate total enclosed spiritual charge.',
-        themeColor: '#38bdf8',
-        status: 'locked',
-        masteryPct: Math.max(20, masteryPct - 20),
-        stars: 0,
-        isBoss: false,
-        bossId: 'renji_boss',
-        bossName: 'Renji Abarai (Electric Roar Zabimaru)',
-        tier: 'easy'
-      },
-      {
-        id: 3,
-        stageNumber: 3,
-        name: 'Kirchhoff Loops & Circuit Dynamics',
-        conceptFocus: 'Resistors, Capacitance & Potential Drops',
-        realmLocation: 'Hueco Mundo Lower Catacombs',
-        kanji: '電気回路の迷宮',
-        lore: 'Balance conservation of charge and energy across branching parallel circuits in the hollow caverns.',
-        themeColor: '#10b981',
-        status: 'locked',
-        masteryPct: 25,
-        stars: 0,
-        isBoss: false,
-        bossId: 'grimmjow',
-        bossName: 'Grimmjow Jaegerjaquez (Current Claws)',
-        tier: 'intermediate'
-      },
-      {
-        id: 4,
-        stageNumber: 4,
-        name: 'Lorentz Deflection & Magnetic Induction',
-        conceptFocus: 'Cross-Product Magnetic Deflection & Faraday Law',
-        realmLocation: 'Las Noches Perimeter Shield',
-        kanji: 'ローレンツ力場',
-        lore: 'Counter Ulquiorra’s emerald Cero blasts using the right-hand rule to deflect high-energy electron beams.',
-        themeColor: '#06b6d4',
-        status: 'locked',
-        masteryPct: 15,
-        stars: 0,
-        isBoss: false,
-        bossId: 'ulquiorra',
-        bossName: 'Ulquiorra Cifer (Electromagnetic Cero)',
-        tier: 'intermediate'
-      },
-      {
-        id: 5,
-        stageNumber: 5,
-        name: 'Grand Apex Demigod Electromagnetism Exam',
-        conceptFocus: 'Comprehensive Maxwellian Synthesis',
-        realmLocation: 'Throne Room of the Soul King // Wahrwelt',
-        kanji: '全知全能の雷',
-        lore: 'Confront Yhwach The Almighty, commanding full electromagnetic synthesis to survive the cataclysmic Reishi lightning!',
-        themeColor: '#eab308',
-        status: 'locked',
-        masteryPct: 10,
-        stars: 0,
-        isBoss: true,
-        bossId: 'yhwach',
-        bossName: 'Yhwach, The Quincy King',
-        tier: 'hard'
-      }
-    ];
-  }
-
-  if (courseId === 'course-cs') {
-    return [
-      {
-        id: 1,
-        stageNumber: 1,
-        name: 'Asymptotic Complexity & Memory Bounds',
-        conceptFocus: 'Big-O Growth Rates & Space-Time Tradeoffs',
-        realmLocation: 'Urahara Research Laboratory',
-        kanji: '計算量の回廊',
-        lore: 'Analyze algorithm efficiency across extreme orders of magnitude before diving into dynamic structures.',
-        themeColor: '#06b6d4',
-        status: hasGaps ? 'remediation_priority' : 'unlocked',
-        masteryPct: Math.max(30, masteryPct - 10),
-        stars: 0,
-        isBoss: false,
-        bossId: 'grand_fisher',
-        bossName: 'Grand Fisher (Brute Force Hollow)',
-        tier: 'easy'
-      },
-      {
-        id: 2,
-        stageNumber: 2,
-        name: 'Execution Context & Lexical Closures',
-        conceptFocus: 'Call Stack, Scope Chains & Memory Heap',
-        realmLocation: 'Research & Development 12th Division',
-        kanji: '記憶空間',
-        lore: 'Master persistent lexical scope environments and memory allocation across asynchronous execution boundaries.',
-        themeColor: '#a855f7',
-        status: 'locked',
-        masteryPct: Math.max(20, masteryPct - 20),
-        stars: 0,
-        isBoss: false,
-        bossId: 'renji_boss',
-        bossName: 'Renji Abarai (Segment Tree Whip)',
-        tier: 'easy'
-      },
-      {
-        id: 3,
-        stageNumber: 3,
-        name: 'Self-Balancing Trees & Recursion Depth',
-        conceptFocus: 'AVL Trees, Binary Search Invariants & Depth',
-        realmLocation: 'Mukenh Underground Prison Gates',
-        kanji: '二分探索樹の封印',
-        lore: 'Traverse hierarchical logarithmic trees to maintain AVL balancing invariants against rogue data corruption.',
-        themeColor: '#3b82f6',
-        status: 'locked',
-        masteryPct: 25,
-        stars: 0,
-        isBoss: false,
-        bossId: 'grimmjow',
-        bossName: 'Grimmjow Jaegerjaquez (Greedy Panther)',
-        tier: 'intermediate'
-      },
-      {
-        id: 4,
-        stageNumber: 4,
-        name: 'Dynamic Programming & Memoized Graphs',
-        conceptFocus: 'Optimal Substructure & Memoization DAGs',
-        realmLocation: 'Las Noches Throne Room',
-        kanji: '動的計画法',
-        lore: 'Break complex recursive problems into overlapping subproblems to achieve polynomial time solutions.',
-        themeColor: '#ec4899',
-        status: 'locked',
-        masteryPct: 20,
-        stars: 0,
-        isBoss: false,
-        bossId: 'szayelaporro',
-        bossName: 'Szayelaporro Granz (Recursive Parasite)',
-        tier: 'intermediate'
-      },
-      {
-        id: 5,
-        stageNumber: 5,
-        name: 'Grand Apex Demigod Computer Science Exam',
-        conceptFocus: 'Advanced Algorithmic Mastery & Complete Hypnosis',
-        realmLocation: 'False Karakura Town // Kyoka Suigetsu',
-        kanji: '鏡花水月の鏡',
-        lore: 'Battle Sosuke Aizen in the absolute illusion realm, proving true algorithmic correctness against complete hypnosis!',
-        themeColor: '#eab308',
-        status: 'locked',
-        masteryPct: 10,
-        stars: 0,
-        isBoss: true,
-        bossId: 'aizen_boss',
-        bossName: 'Sosuke Aizen (Complete Hypnosis)',
-        tier: 'hard'
-      }
-    ];
-  }
-
-  // Default: Classical Mechanics (course-mechanics)
-  return [
-    {
-      id: 1,
-      stageNumber: 1,
-      name: 'Displacement & Kinetic Velocity',
-      conceptFocus: 'Foundational Vectors & Displacement',
-      realmLocation: 'Urahara Underground Training Grounds',
-      kanji: '地下修練場',
-      lore: 'Deep beneath the Urahara candy shop, fractured bedrock serves as the proving ground for raw kinetic motion and directional displacement.',
-      themeColor: '#f97316',
-      status: hasGaps ? 'remediation_priority' : 'unlocked',
-      masteryPct: Math.max(30, masteryPct - 15),
-      stars: 0,
-      isBoss: false,
-      bossId: 'grand_fisher',
-      bossName: 'Grand Fisher (Kinetic Hollow)',
-      tier: 'easy'
-    },
-    {
-      id: 2,
-      stageNumber: 2,
-      name: 'Newtonian Force & Reaction Pairs',
-      conceptFocus: 'Net Force & Inertial Reference',
-      realmLocation: 'Rukongai Outskirts // Jidanbo Iron Gate',
-      kanji: '流魂街・白道門',
-      lore: 'Beyond the colossal iron gates, Newton’s laws of opposing action dictate whether your Reiatsu shatters the gate or is repelled.',
-      themeColor: '#38bdf8',
-      status: 'locked',
-      masteryPct: Math.max(20, masteryPct - 20),
-      stars: 0,
-      isBoss: false,
-      bossId: 'renji_boss',
-      bossName: 'Renji Abarai (Newtonian Whip)',
-      tier: 'easy'
-    },
-    {
-      id: 3,
-      stageNumber: 3,
-      name: 'Work-Energy & Potential Wells',
-      conceptFocus: 'Conservation of Mechanical Energy',
-      realmLocation: 'Seireitei Senkaimon Gateways',
-      kanji: '瀞霊廷・穿界門',
-      lore: 'The boundary portal where potential and kinetic Reiatsu continuously transform according to the laws of thermodynamic conservation.',
-      themeColor: '#f472b6',
-      status: 'locked',
-      masteryPct: 20,
-      stars: 0,
-      isBoss: false,
-      bossId: 'grimmjow',
-      bossName: 'Grimmjow Jaegerjaquez (Kinetic Beast)',
-      tier: 'intermediate'
-    },
-    {
-      id: 4,
-      stageNumber: 4,
-      name: 'Elastic Momentum & High-Speed Sonido',
-      conceptFocus: 'Impulse, Inelastic Impact & Center of Mass',
-      realmLocation: 'Hueco Mundo // Desert of Las Noches',
-      kanji: '虚圏・白砂の領域',
-      lore: 'The desolate quartz expanse where supersonic speed and momentum transfer collide beneath a perpetual crescent moon.',
-      themeColor: '#0284c7',
-      status: 'locked',
-      masteryPct: 15,
-      stars: 0,
-      isBoss: false,
-      bossId: 'ulquiorra',
-      bossName: 'Ulquiorra Cifer (Resonant Waveform)',
-      tier: 'intermediate'
-    },
-    {
-      id: 5,
-      stageNumber: 5,
-      name: 'Grand Apex Demigod Battle',
-      conceptFocus: 'Comprehensive Multi-Concept Synthesis',
-      realmLocation: 'Sokyoku Execution Hill // Ruins of 1st Division',
-      kanji: '残火の太刀',
-      lore: 'The summit of Soul Society where torque, angular momentum, and razor execution blades face the supreme Head Captain: Genryūsai Yamamoto!',
-      themeColor: '#eab308',
-      status: 'locked',
-      masteryPct: 10,
-      stars: 0,
-      isBoss: true,
-      bossId: 'yamamoto_boss',
-      bossName: 'Genryūsai Yamamoto (Zanka no Tachi)',
-      tier: 'hard'
-    }
-  ];
+  return generatePersonalizedWorldStages({
+    courseId,
+    skillLevel,
+    scorePercentage: score,
+    weaknesses: weakTopics.length > 0 ? weakTopics : diagnosedGaps,
+    strengths: strongTopics,
+    diagnosedGaps,
+    aiCustomStages
+  });
 }
 
 // -------------------------------------------------------------
@@ -538,7 +273,12 @@ function BleachArenaBackground({ bgType }: { bgType: 'seireitei' | 'huecomundo' 
 
       {/* 2. HUECO MUNDO // DESERT OF LAS NOCHES */}
       {bgType === 'huecomundo' && (
-        <div className="absolute inset-0 bg-gradient-to-b from-[#020617] via-[#090d16] to-[#020617]">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/bg-main.jpg')" }}
+        >
+          {/* Deep dark tint overlay for combat contrast */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#020617]/75 via-[#030712]/65 to-[#020617]/85" />
           {/* White Reishi Sand Dust motes */}
           <div className="absolute inset-0">
             {Array.from({ length: 14 }).map((_, i) => (
@@ -561,25 +301,6 @@ function BleachArenaBackground({ bgType }: { bgType: 'seireitei' | 'huecomundo' 
               />
             ))}
           </div>
-
-          {/* Bleach Iconic Horizontal Crescent Moon */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-24 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full border-4 border-slate-100 border-t-transparent border-l-transparent -rotate-45 shadow-[0_0_40px_rgba(255,255,255,0.7)]" />
-          </div>
-
-          {/* White Quartz Desert Dunes & Colossal Las Noches Dome */}
-          <svg className="absolute inset-0 w-full h-full opacity-45" viewBox="0 0 100 60" preserveAspectRatio="none">
-            {/* Las Noches Dome */}
-            <path d="M 30,50 Q 50,22 70,50 Z" fill="#334155" />
-            <circle cx="50" cy="38" r="3" fill="#38bdf8" className="animate-pulse" />
-            {/* Quartz Trees */}
-            <line x1="20" y1="36" x2="20" y2="55" stroke="#94a3b8" strokeWidth="1.5" />
-            <line x1="17" y1="42" x2="23" y2="39" stroke="#94a3b8" strokeWidth="1" />
-            <line x1="85" y1="34" x2="85" y2="55" stroke="#94a3b8" strokeWidth="1.5" />
-            <line x1="82" y1="40" x2="88" y2="38" stroke="#94a3b8" strokeWidth="1" />
-            {/* White Sand Dunes */}
-            <path d="M 0,55 Q 30,42 60,54 Q 80,48 100,58 L 100,60 L 0,60 Z" fill="#e2e8f0" opacity="0.6" />
-          </svg>
         </div>
       )}
 
@@ -1145,81 +866,229 @@ function UnifiedHeader({
   onOpenLogin = () => {},
   onLogout = () => {},
   activeTestStage = null,
-  onExitTest = () => {}
+  onExitTest = () => {},
+  hasAiAnalysis = false,
+  selectedClassId = 'warrior',
+  classLevels,
+  playerLevelInfo = { level: 1, currentLevelXp: 0, nextLevelXpRequired: 100, totalXp: 0, progressPercentage: 0, skillPointsAvailable: 0, totalSkillPointsEarned: 0 },
+  streakDays = 1,
+  unclaimedQuestsCount = 0,
+  unclaimedAchievementsCount = 0
 }: {
-  mainTab: 'courses' | 'worldmap' | 'dashboard' | 'characters' | 'diagnostic';
-  setMainTab: (tab: 'courses' | 'worldmap' | 'dashboard' | 'characters' | 'diagnostic') => void;
+  mainTab: 'courses' | 'worldmap' | 'dashboard' | 'characters' | 'diagnostic' | 'ai-analysis' | 'skilltree' | 'quests' | 'achievements' | 'notes' | 'labs';
+  setMainTab: (tab: 'courses' | 'worldmap' | 'dashboard' | 'characters' | 'diagnostic' | 'ai-analysis' | 'skilltree' | 'quests' | 'achievements' | 'notes' | 'labs') => void;
   geo: number;
   currentUser?: UserProfile | null;
   onOpenLogin?: () => void;
   onLogout?: () => void;
   activeTestStage?: WorldStageNode | null;
   onExitTest?: () => void;
+  hasAiAnalysis?: boolean;
+  selectedClassId?: CharacterClassId;
+  classLevels?: CharacterClassLevelsMap;
+  playerLevelInfo?: PlayerLevelInfo;
+  streakDays?: number;
+  unclaimedQuestsCount?: number;
+  unclaimedAchievementsCount?: number;
 }) {
   const isCoursesActive = mainTab === 'courses' || mainTab === 'worldmap' || mainTab === 'diagnostic';
+  const activeClass = CHARACTER_CLASSES[selectedClassId] || CHARACTER_CLASSES.warrior;
+  const activeLevel = classLevels ? classLevels[selectedClassId] || 1 : 1;
 
   return (
     <header className="sticky top-0 z-50 bg-[#090d16]/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 py-2.5 flex items-center justify-between font-mono select-none">
+      
+      {/* Left: Logo & Duolingo-style Level / Streak HUD */}
       <div className="flex items-center space-x-2.5">
-        <span className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center font-black text-slate-950 text-xs shadow-md">
-          QL
-        </span>
-        <div className="flex items-center space-x-2">
-          <span className="font-black text-white text-xs sm:text-sm tracking-wider uppercase">
-            QuestLearn × AdaptiveAI
-          </span>
-          <span className="hidden lg:inline-block px-2 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-            BKT ACTIVE
-          </span>
+        <button 
+          onClick={() => setMainTab('courses')} 
+          className="flex items-center space-x-2 text-left group cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center font-black text-cyan-400 text-sm group-hover:scale-105 transition">
+            Q
+          </div>
+          <div>
+            <div className="text-xs font-black text-white tracking-wider flex items-center gap-1">
+              <span>QUESTLEARN</span>
+              <span className="text-[9px] text-cyan-400">RPG</span>
+            </div>
+            <div className="text-[9px] text-slate-400">Class 12 Prep</div>
+          </div>
+        </button>
+
+        {/* Player Level Badge & XP Progress Pill */}
+        <div className="hidden sm:flex items-center space-x-2 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 text-[10px]">
+          <div className="flex items-center space-x-1 font-black text-cyan-400">
+            <span>LVL</span>
+            <span className="text-xs text-white">{playerLevelInfo.level}</span>
+          </div>
+          <div className="w-16 bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800">
+            <div 
+              className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-full transition-all duration-300"
+              style={{ width: `${playerLevelInfo.progressPercentage}%` }}
+            />
+          </div>
+          <span className="text-slate-400 font-bold">{playerLevelInfo.currentLevelXp}/{playerLevelInfo.nextLevelXpRequired} XP</span>
         </div>
+
+        {/* Daily Streak Flame */}
+        <button
+          onClick={() => setMainTab('quests')}
+          className="flex items-center space-x-1 px-2 py-1 bg-amber-950/40 hover:bg-amber-950/70 border border-amber-500/40 rounded-xl text-xs font-bold text-amber-300 transition cursor-pointer"
+          title="Daily Learning Streak"
+        >
+          <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+          <span>{streakDays}</span>
+        </button>
       </div>
 
-      <nav className="flex items-center space-x-1.5 sm:space-x-2 text-xs overflow-x-auto py-1">
+      {/* Center: Navigation Tabs */}
+      <div className="flex items-center space-x-1 overflow-x-auto py-1 max-w-[55vw] scrollbar-none">
+        
+        {/* Courses & World Map Tab */}
         <button
           onClick={() => setMainTab('courses')}
-          className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
             isCoursesActive
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25'
+              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/25'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5" />
           <span>Courses</span>
           {mainTab === 'worldmap' && (
-            <span className="hidden sm:inline-block text-[10px] bg-emerald-950 text-emerald-200 px-1.5 py-0.2 rounded border border-emerald-400/40">
-              Roadmap
+            <span className="hidden sm:inline-block text-[9px] bg-emerald-950 text-emerald-200 px-1 py-0.2 rounded border border-emerald-400/40">
+              Map
             </span>
           )}
         </button>
 
+        {/* Interactive Lecture Notes Tab */}
         <button
-          onClick={() => setMainTab('characters')}
-          className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 ${
-            mainTab === 'characters'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25'
+          onClick={() => setMainTab('notes')}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+            mainTab === 'notes'
+              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
-          <Shield className="w-3.5 h-3.5" />
-          <span>Characters</span>
+          <BookOpen className="w-3.5 h-3.5" />
+          <span>Notes</span>
+          <span className="px-1 py-0.2 rounded text-[8px] font-black bg-cyan-950 text-cyan-300 border border-cyan-400/30">
+            AI
+          </span>
         </button>
 
+        {/* Interactive Practical Labs Tab */}
         <button
-          onClick={() => setMainTab('dashboard')}
-          className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 cursor-pointer text-xs shrink-0 ${
-            mainTab === 'dashboard'
+          onClick={() => setMainTab('labs')}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+            mainTab === 'labs'
+              ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/25 font-black'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <FlaskConical className="w-3.5 h-3.5" />
+          <span>Labs</span>
+          <span className="px-1 py-0.2 rounded text-[8px] font-black bg-emerald-950 text-emerald-300 border border-emerald-400/30">
+            SIM
+          </span>
+        </button>
+
+        {/* Skill Tree Tab */}
+        <button
+          onClick={() => setMainTab('skilltree')}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+            mainTab === 'skilltree'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
+          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Skills</span>
+          {playerLevelInfo.skillPointsAvailable > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 animate-bounce">
+              {playerLevelInfo.skillPointsAvailable}SP
+            </span>
+          )}
+        </button>
+
+        {/* Daily Quests Tab */}
+        <button
+          onClick={() => setMainTab('quests')}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+            mainTab === 'quests'
+              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Flame className="w-3.5 h-3.5" />
+          <span>Quests</span>
+          {unclaimedQuestsCount > 0 && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute -top-0.5 -right-0.5" />
+          )}
+        </button>
+
+        {/* Achievements Tab */}
+        <button
+          onClick={() => setMainTab('achievements')}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 relative ${
+            mainTab === 'achievements'
+              ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Trophy className="w-3.5 h-3.5" />
+          <span>Trophies</span>
+          {unclaimedAchievementsCount > 0 && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping absolute -top-0.5 -right-0.5" />
+          )}
+        </button>
+
+        {/* Characters Tab */}
+        <button
+          onClick={() => setMainTab('characters')}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
+            mainTab === 'characters'
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Shield className="w-3.5 h-3.5" />
+          <span>Classes</span>
+        </button>
+
+        {/* AI Analysis Tab */}
+        {(hasAiAnalysis || mainTab === 'ai-analysis') && (
+          <button
+            onClick={() => setMainTab('ai-analysis')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
+              mainTab === 'ai-analysis'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                : 'text-indigo-300 hover:text-white hover:bg-slate-800 border border-indigo-500/30'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <span>AI Roadmap</span>
+          </button>
+        )}
+
+        <button
+          onClick={() => setMainTab('dashboard')}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer text-xs shrink-0 ${
+            mainTab === 'dashboard'
+              ? 'bg-slate-700 text-white shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
           <BarChart3 className="w-3.5 h-3.5" />
-          <span>Dashboard</span>
+          <span>Stats</span>
         </button>
 
         {activeTestStage && (
-          <div className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-black flex items-center space-x-1.5 animate-pulse shrink-0">
-            <Swords className="w-3.5 h-3.5 text-rose-400" />
-            <span>STAGE {activeTestStage.stageNumber} TEST ACTIVE</span>
+          <div className="px-2 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-black flex items-center space-x-1 animate-pulse shrink-0">
+            <Swords className="w-3 h-3 text-rose-400" />
+            <span>STAGE {activeTestStage.stageNumber} BATTLE ACTIVE</span>
             <button
               onClick={onExitTest}
               className="ml-1 hover:text-white text-rose-400 font-black cursor-pointer"
@@ -1229,22 +1098,33 @@ function UnifiedHeader({
             </button>
           </div>
         )}
-      </nav>
+      </div>
 
+      {/* Right: Equipped Class, Coins & User */}
       <div className="flex items-center space-x-2 shrink-0">
-        <div className="hidden sm:flex items-center space-x-1.5 text-xs font-bold text-amber-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-amber-500/30">
+        <button
+          onClick={() => setMainTab('characters')}
+          className="hidden md:flex items-center space-x-1.5 text-xs font-bold text-amber-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-indigo-500/40 hover:border-amber-400 transition cursor-pointer"
+          title="Equipped Character Class & Upgrades"
+        >
+          <span>{activeClass.iconSymbol}</span>
+          <span className="text-white">{activeClass.name}</span>
+          <span className="text-amber-400 text-[10px] font-black">Lv.{activeLevel}</span>
+        </button>
+
+        <div className="flex items-center space-x-1.5 text-xs font-bold text-amber-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-amber-500/30">
           <Coins className="w-3.5 h-3.5" />
-          <span>{geo} Geo</span>
+          <span>{geo}</span>
         </div>
 
         {currentUser ? (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             <button
               onClick={onOpenLogin}
-              className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-indigo-500/40 rounded-lg text-xs font-bold text-indigo-300 flex items-center space-x-1 cursor-pointer"
+              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-indigo-500/40 rounded-lg text-xs font-bold text-indigo-300 flex items-center space-x-1 cursor-pointer"
             >
               <User className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="truncate max-w-[90px]">{currentUser.username}</span>
+              <span className="truncate max-w-[80px]">{currentUser.username}</span>
             </button>
             <button
               onClick={onLogout}
@@ -1257,10 +1137,10 @@ function UnifiedHeader({
         ) : (
           <button
             onClick={onOpenLogin}
-            className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black rounded-lg transition flex items-center space-x-1.5 shadow cursor-pointer uppercase"
+            className="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black rounded-lg transition flex items-center space-x-1 shadow cursor-pointer uppercase"
           >
             <User className="w-3.5 h-3.5" />
-            <span>Login</span>
+            <span className="hidden sm:inline">Login</span>
           </button>
         )}
       </div>
@@ -1273,7 +1153,7 @@ function UnifiedHeader({
 // -------------------------------------------------------------
 export default function GameArena() {
   const [mounted, setMounted] = useState(false);
-  const [mainTab, setMainTab] = useState<'courses' | 'worldmap' | 'dashboard' | 'characters' | 'diagnostic'>('courses');
+  const [mainTab, setMainTab] = useState<'courses' | 'worldmap' | 'dashboard' | 'characters' | 'diagnostic' | 'ai-analysis' | 'skilltree' | 'quests' | 'achievements' | 'notes' | 'labs'>('courses');
   const [gameState, setGameState] = useState<'title' | 'arena' | 'gameover' | 'finisher' | 'shop'>('title');
 
   // Auth Modal & User State
@@ -1284,6 +1164,11 @@ export default function GameArena() {
   // Selected Course for Diagnostic & World Map
   const [selectedCourse, setSelectedCourse] = useState<CourseData>(ACADEMIC_COURSES[0]);
 
+  // AI Roadmap & Analysis State
+  const [currentAiAnalysis, setCurrentAiAnalysis] = useState<GenerateRoadmapResponse | null>(null);
+  const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
+  const [latestDiagnosticScore, setLatestDiagnosticScore] = useState<number>(75);
+
   // Unlocked Courses and Active Stage Test
   const [unlockedCourses, setUnlockedCourses] = useState<Record<string, {
     diagnosticCompleted: boolean;
@@ -1291,18 +1176,24 @@ export default function GameArena() {
     stages: WorldStageNode[];
     diagnosedGaps?: string[];
     aiModelUsed?: string;
-    aiRoadmapMeta?: {
-      difficulty?: string;
-      estimatedStudyHours?: number;
-      weakTopics?: string[];
-      strongTopics?: string[];
-    } | null;
+    aiRoadmapMeta?: GenerateRoadmapResponse | null;
+    skillLevel?: SkillLevel;
+    scorePercentage?: number;
   }>>({});
   const [activeTestStage, setActiveTestStage] = useState<WorldStageNode | null>(null);
 
+  // Dynamic AI Questions & Battle Prep State
+  const [activeBattleQuestions, setActiveBattleQuestions] = useState<CourseQuestion[] | null>(null);
+  const [isPreparingStageTest, setIsPreparingStageTest] = useState<boolean>(false);
+  const [stageAttemptCounts, setStageAttemptCounts] = useState<Record<string, number>>({});
+  const [currentPrepStage, setCurrentPrepStage] = useState<WorldStageNode | null>(null);
+
   const [tier, setTier] = useState<'easy' | 'intermediate' | 'hard'>('easy');
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [playerHearts, setPlayerHearts] = useState(5);
+  const [playerHp, setPlayerHp] = useState<number>(MAX_PLAYER_HP);
+  const [deathDefianceUsed, setDeathDefianceUsed] = useState<boolean>(false);
+  const [freeReviveUsed, setFreeReviveUsed] = useState<boolean>(false);
+  const [courseBattleHearts, setCourseBattleHearts] = useState<number>(0);
   const [bossHp, setBossHp] = useState(100);
   const [streak, setStreak] = useState(0);
   const [scoreEssence, setScoreEssence] = useState(0);
@@ -1314,6 +1205,20 @@ export default function GameArena() {
   const [selectedHeroId, setSelectedHeroId] = useState<BleachHeroId>('ichigo');
   const [previewHeroId, setPreviewHeroId] = useState<BleachHeroId>('ichigo');
   const [armoryAnimState, setArmoryAnimState] = useState<string>('idle');
+
+  // Character Class System (Healer, Warrior, Guardian, Mage, Immortal)
+  const [selectedClassId, setSelectedClassId] = useState<CharacterClassId>('warrior');
+  const [classLevels, setClassLevels] = useState<CharacterClassLevelsMap>(DEFAULT_CLASS_LEVELS);
+  const [immortalShieldsRemaining, setImmortalShieldsRemaining] = useState<number>(1);
+
+  // RPG Progression Engine (XP, Skill Trees, Streaks, Daily Quests & Achievements)
+  const [xp, setXp] = useState<number>(250);
+  const [unlockedSkillNodeIds, setUnlockedSkillNodeIds] = useState<string[]>([]);
+  const [dailyStreakState, setDailyStreakState] = useState<DailyStreakState>(DEFAULT_DAILY_STREAK);
+  const [dailyQuestsState, setDailyQuestsState] = useState<DailyQuestsState>(() => generateDailyQuests());
+  const [achievementsState, setAchievementsState] = useState<Achievement[]>(() => ACHIEVEMENTS_CATALOG);
+  const [isLevelUpModalOpen, setIsLevelUpModalOpen] = useState<boolean>(false);
+  const [newLevelAchieved, setNewLevelAchieved] = useState<number>(1);
 
   // Boss Phase 2 & Lore Modal
   const [bossPhase, setBossPhase] = useState<1 | 2>(1);
@@ -1331,7 +1236,7 @@ export default function GameArena() {
   const [bossAttacking, setBossAttacking] = useState(false);
   const [playerHurt, setPlayerHurt] = useState(false);
   const [screenShake, setScreenShake] = useState<'none' | 'light' | 'heavy'>('none');
-  const [damagePopup, setDamagePopup] = useState<{ amount: number; text: string; isCrit?: boolean; isPlayerDamage?: boolean } | null>(null);
+  const [damagePopup, setDamagePopup] = useState<{ amount: number; text: string; isCrit?: boolean; isPlayerDamage?: boolean; isHealing?: boolean } | null>(null);
   const [stanceMessage, setStanceMessage] = useState<string | null>(null);
   const [battleLog, setBattleLog] = useState<string[]>([
     '▶ Welcome to the Seireitei Gauntlet. Draw your Zanpakuto!',
@@ -1367,6 +1272,29 @@ export default function GameArena() {
         setSelectedHeroId(savedSelected);
         setPreviewHeroId(savedSelected);
       }
+
+      // Load Character Classes & Upgrades
+      const savedLevels = loadCharacterClassLevels();
+      setClassLevels(savedLevels);
+      const savedClass = loadSelectedCharacterClass();
+      setSelectedClassId(savedClass);
+
+      // Load RPG Progression
+      const savedXp = loadTotalXp();
+      setXp(savedXp);
+
+      const savedSkills = loadUnlockedSkillNodes();
+      setUnlockedSkillNodeIds(savedSkills);
+
+      const streakRes = updateDailyStreak(loadDailyStreakState());
+      setDailyStreakState(streakRes.state);
+      saveDailyStreakState(streakRes.state);
+
+      const savedQuests = loadDailyQuestsState();
+      setDailyQuestsState(savedQuests);
+
+      const savedAchievements = loadAchievementsState();
+      setAchievementsState(savedAchievements);
     } catch {
       // Fallback
     }
@@ -1374,14 +1302,175 @@ export default function GameArena() {
 
   const activeHero = BLEACH_ROSTER[selectedHeroId] || BLEACH_ROSTER.ichigo;
   const inspectedHero = BLEACH_ROSTER[previewHeroId] || activeHero;
+  const activeClassConfig = CHARACTER_CLASSES[selectedClassId] || CHARACTER_CLASSES.warrior;
+  const activeClassStats = activeClassConfig.getStatsForLevel(classLevels[selectedClassId] || 1);
+
+  // RPG Progression Computed States
+  const spentSkillPoints = unlockedSkillNodeIds.reduce((sum, id) => {
+    const node = SKILL_TREE_NODES.find((n) => n.id === id);
+    return sum + (node ? node.cost : 0);
+  }, 0);
+  const playerLevelInfo = calculatePlayerLevel(xp, spentSkillPoints);
+  const activeSkillBuffs = getActiveSkillBuffs(unlockedSkillNodeIds);
+  const unclaimedQuestsCount = dailyQuestsState.quests.filter((q) => q.current >= q.target && !q.claimed).length;
+  const unclaimedAchievementsCount = achievementsState.filter((a) => a.isUnlocked && !a.isClaimed).length;
+  const effectiveMaxHp = MAX_PLAYER_HEARTS + (activeSkillBuffs.maxHpBonus > 0 ? Math.round(activeSkillBuffs.maxHpBonus / 10) : 0);
+
+  const handleSelectClass = (classId: CharacterClassId) => {
+    setSelectedClassId(classId);
+    saveSelectedCharacterClass(classId);
+    playSound('equip');
+  };
+
+  const handleUpgradeClass = (classId: CharacterClassId, cost: number) => {
+    const discount = activeSkillBuffs.classUpgradeDiscountPct || 0;
+    const discountedCost = Math.max(1, Math.round(cost * (1 - discount)));
+    if (geo < discountedCost) return;
+    const nextGeo = geo - discountedCost;
+    setGeo(nextGeo);
+    try {
+      localStorage.setItem('questlearn_bleach_geo', nextGeo.toString());
+    } catch {}
+    const currentLvl = classLevels[classId] || 1;
+    const nextLvl = currentLvl + 1;
+    const updated = saveCharacterClassLevel(classId, nextLvl);
+    setClassLevels(updated);
+    playSound('phase2');
+
+    // Check class upgrade achievements
+    setAchievementsState((prevAch) => {
+      let r = updateAchievementProgress(prevAch, 'ach_class_adept', nextLvl);
+      r = updateAchievementProgress(r.updated, 'ach_class_master', nextLvl);
+      saveAchievementsState(r.updated);
+      return r.updated;
+    });
+  };
+
+  // XP Gain and Level-Up Engine
+  const addXp = (earnedXp: number) => {
+    if (earnedXp <= 0) return;
+    setXp((prevXp) => {
+      const nextXp = prevXp + earnedXp;
+      saveTotalXp(nextXp);
+
+      const prevLvl = calculatePlayerLevel(prevXp, spentSkillPoints).level;
+      const nextLvl = calculatePlayerLevel(nextXp, spentSkillPoints).level;
+      if (nextLvl > prevLvl) {
+        setNewLevelAchieved(nextLvl);
+        setIsLevelUpModalOpen(true);
+        playSound('phase2');
+      }
+      return nextXp;
+    });
+
+    // Advance daily quest for XP
+    setDailyQuestsState((prevQuests) => {
+      const updated = updateDailyQuestProgress(prevQuests, 'earn_xp', earnedXp);
+      saveDailyQuestsState(updated);
+      return updated;
+    });
+  };
+
+  const handleUnlockSkillNode = (nodeId: string) => {
+    const check = canUnlockSkillNode(nodeId, unlockedSkillNodeIds, playerLevelInfo.skillPointsAvailable);
+    if (!check.canUnlock) {
+      triggerStanceNotification(`⚠️ ${check.reason || 'Cannot unlock node'}`);
+      return;
+    }
+    const nextUnlocked = [...unlockedSkillNodeIds, nodeId];
+    setUnlockedSkillNodeIds(nextUnlocked);
+    saveUnlockedSkillNodes(nextUnlocked);
+    playSound('arcane');
+    triggerStanceNotification('✨ SKILL PERK UNLOCKED!');
+
+    // Update skill tree pioneer achievement
+    setAchievementsState((prev) => {
+      const r = updateAchievementProgress(prev, 'ach_skill_pioneer', nextUnlocked.length);
+      saveAchievementsState(r.updated);
+      return r.updated;
+    });
+  };
+
+  const handleClaimQuestReward = (questId: string, rewardXp: number, rewardGeo: number) => {
+    setDailyQuestsState((prev) => {
+      const updatedQuests = prev.quests.map((q) => (q.id === questId ? { ...q, claimed: true } : q));
+      const nextState = { ...prev, quests: updatedQuests };
+      saveDailyQuestsState(nextState);
+      return nextState;
+    });
+    addXp(rewardXp);
+    addGeo(rewardGeo);
+    playSound('geo');
+    triggerStanceNotification(`🎁 QUEST COMPLETED: +${rewardXp} XP, +${rewardGeo} Geo!`);
+  };
+
+  const handleBuyStreakShield = () => {
+    if (geo < 50) {
+      triggerStanceNotification('⚠️ Insufficient Geo! Need 50 Geo for a Streak Shield.');
+      return;
+    }
+    const nextGeo = geo - 50;
+    setGeo(nextGeo);
+    try {
+      localStorage.setItem('questlearn_bleach_geo', String(nextGeo));
+    } catch {}
+
+    setDailyStreakState((prev) => {
+      const nextState: DailyStreakState = {
+        ...prev,
+        streakShieldCount: prev.streakShieldCount + 1
+      };
+      saveDailyStreakState(nextState);
+      return nextState;
+    });
+    playSound('equip');
+    triggerStanceNotification('🛡️ STREAK SHIELD PURCHASED! Your daily flame is protected.');
+  };
+
+  const handleClaimStreakMilestone = (milestoneDay: number, rewardXp: number, rewardGeo: number) => {
+    setDailyStreakState((prev) => {
+      if (prev.claimedMilestones.includes(milestoneDay)) return prev;
+      const nextState: DailyStreakState = {
+        ...prev,
+        claimedMilestones: [...prev.claimedMilestones, milestoneDay]
+      };
+      saveDailyStreakState(nextState);
+      return nextState;
+    });
+    addXp(rewardXp);
+    addGeo(rewardGeo);
+    if (milestoneDay >= 3) {
+      setAchievementsState((prev) => {
+        const r = updateAchievementProgress(prev, 'ach_streak_3', milestoneDay);
+        saveAchievementsState(r.updated);
+        return r.updated;
+      });
+    }
+    playSound('cosmic');
+    triggerStanceNotification(`🔥 STREAK MILESTONE ${milestoneDay} DAYS: +${rewardXp} XP, +${rewardGeo} Geo!`);
+  };
+
+  const handleClaimAchievement = (achievementId: string, rewardXp: number, rewardGeo: number) => {
+    setAchievementsState((prev) => {
+      const updated = prev.map((a) => (a.id === achievementId ? { ...a, isClaimed: true } : a));
+      saveAchievementsState(updated);
+      return updated;
+    });
+    addXp(rewardXp);
+    addGeo(rewardGeo);
+    playSound('cosmic');
+    triggerStanceNotification(`🏆 TROPHY CLAIMED: +${rewardXp} XP, +${rewardGeo} Geo!`);
+  };
   const [currentBoss, setCurrentBoss] = useState<BleachVillainConfig>(BLEACH_BOSS_CATALOG.grimmjow);
   const boss = currentBoss;
   const stageQuestions = (activeTestStage && selectedCourse)
     ? getStageQuestions(selectedCourse.id, activeTestStage.stageNumber)
     : null;
-  const currentQuestions = (stageQuestions && stageQuestions.length > 0)
-    ? stageQuestions
-    : questionsData[tier];
+  const currentQuestions = (activeBattleQuestions && activeBattleQuestions.length > 0)
+    ? activeBattleQuestions
+    : (stageQuestions && stageQuestions.length > 0)
+      ? stageQuestions
+      : questionsData[tier];
   const currentQuestion = currentQuestions[questionIndex % currentQuestions.length];
 
   // Audio Synth Engine
@@ -1544,7 +1633,7 @@ export default function GameArena() {
     });
   };
 
-  const handleHeroAction = (hero: BleachHeroConfig) => {
+  const handleHeroAction = async (hero: BleachHeroConfig) => {
     const isUnlocked = unlockedHeroIds.includes(hero.id);
     if (isUnlocked) {
       setSelectedHeroId(hero.id);
@@ -1555,6 +1644,41 @@ export default function GameArena() {
       addLog(`▶ Equipped ${hero.name}!`);
     } else {
       if (geo >= hero.geoCost) {
+        try {
+          // Authoritative backend purchase verification
+          const res = await fetch('/api/character-vault', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              characterId: hero.id,
+              userGeo: geo,
+              unlockedHeroIds
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              const newGeo = typeof data.remainingGeo === 'number' ? data.remainingGeo : (geo - hero.geoCost);
+              const newUnlocked = Array.isArray(data.updatedUnlocked) ? (data.updatedUnlocked as BleachHeroId[]) : [...unlockedHeroIds, hero.id];
+              setGeo(newGeo);
+              setUnlockedHeroIds(newUnlocked);
+              setSelectedHeroId(hero.id);
+              playSound('unlock');
+              confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
+              try {
+                localStorage.setItem('questlearn_bleach_geo', String(newGeo));
+                localStorage.setItem('questlearn_bleach_unlocked', JSON.stringify(newUnlocked));
+                localStorage.setItem('questlearn_bleach_selected', hero.id);
+              } catch {}
+              addLog(`▶ Unlocked and equipped ${hero.name} for ${hero.geoCost} Geo! (Authoritative Vault)`);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('[QuestLearn Vault] Backend validation fallback:', err);
+        }
+
+        // Local fallback if network is offline
         const newGeo = geo - hero.geoCost;
         setGeo(newGeo);
         const newUnlocked = [...unlockedHeroIds, hero.id];
@@ -1574,24 +1698,30 @@ export default function GameArena() {
     }
   };
 
-  // Diagnostic completion: unlock course, request AI generated roadmap, build personalized stages, navigate to worldmap
+  // Diagnostic completion: unlock course, request AI generated roadmap, build personalized stages, navigate to AI Analysis or World Map view
   const handleFinishDiagnostic = async (results: { 
     courseId: string; 
+    courseName?: string;
     overallMastery: number; 
+    overallScore: number;
     diagnosedGaps: string[];
     scores?: Record<string, number>;
+    weakTopics: string[];
+    strongTopics: string[];
+    answers: StudentAnswerItem[];
+    targetTab?: 'worldmap' | 'ai-analysis';
   }) => {
     const foundCourse = ACADEMIC_COURSES.find(c => c.id === results.courseId) || selectedCourse;
     if (foundCourse) setSelectedCourse(foundCourse);
 
-    let personalizedStages = buildPersonalizedStages(results.courseId, results.overallMastery, results.diagnosedGaps);
-    let aiModelUsed = 'QuestLearn AI';
-    let aiRoadmapMeta: {
-      difficulty?: string;
-      estimatedStudyHours?: number;
-      weakTopics?: string[];
-      strongTopics?: string[];
-    } | null = null;
+    const scorePercentage = results.overallScore ?? Math.round(results.overallMastery * 100);
+    const skillLevel = calculateSkillLevel(Math.round((scorePercentage / 100) * 10));
+    setLatestDiagnosticScore(scorePercentage);
+    setMainTab(results.targetTab === 'worldmap' ? 'worldmap' : 'ai-analysis');
+    setIsAiGenerating(true);
+
+    let aiModelUsed = 'Google Gemini 2.5 Flash';
+    let fullRoadmapData: GenerateRoadmapResponse | null = null;
 
     try {
       const scoresPayload = results.scores && Object.keys(results.scores).length > 0
@@ -1608,36 +1738,46 @@ export default function GameArena() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           course: foundCourse.title,
-          scores: scoresPayload
+          scores: scoresPayload,
+          overallScore: results.overallScore,
+          weakTopics: results.weakTopics,
+          strongTopics: results.strongTopics,
+          answers: results.answers
         })
       });
 
       if (res.ok) {
-        const data = await res.json();
-        aiModelUsed = res.headers.get('X-Model-Used') || 'Google Gemini AI';
-        aiRoadmapMeta = {
-          difficulty: data.difficulty,
-          estimatedStudyHours: data.estimatedStudyHours,
-          weakTopics: data.weakTopics,
-          strongTopics: data.strongTopics
-        };
-
-        if (Array.isArray(data.weakTopics) && data.weakTopics.length > 0) {
-          personalizedStages = personalizedStages.map((stage, idx) => {
-            const matchesWeakness = data.weakTopics.some((weak: string) =>
-              stage.conceptFocus.toLowerCase().includes(weak.toLowerCase()) ||
-              stage.name.toLowerCase().includes(weak.toLowerCase())
-            );
-            return {
-              ...stage,
-              status: (matchesWeakness || idx === 0) ? 'remediation_priority' : stage.status
-            };
-          });
-        }
+        fullRoadmapData = await res.json();
+        aiModelUsed = res.headers.get('X-Model-Used') || 'Google Gemini 2.5 Flash';
       }
     } catch (err) {
       console.warn('[QuestLearn AI] Roadmap fetch fallback engaged:', err);
     }
+
+    if (!fullRoadmapData) {
+      fullRoadmapData = {
+        strengths: results.strongTopics && results.strongTopics.length > 0 ? results.strongTopics : ['Algebra', 'Trigonometry'],
+        weaknesses: results.weakTopics && results.weakTopics.length > 0 ? results.weakTopics : ['Calculus', 'Coordinate Geometry'],
+        strongTopics: results.strongTopics,
+        weakTopics: results.weakTopics,
+        recommendedOrder: ['Functions', 'Limits', 'Differentiation', 'Applications'],
+        difficulty: scorePercentage < 40 ? 'Foundational' : scorePercentage < 75 ? 'Medium' : 'Advanced',
+        estimatedStudyHours: 18,
+        bossBattles: ['Calculus Conqueror', 'Derivative Demon']
+      };
+    }
+
+    setCurrentAiAnalysis(fullRoadmapData);
+
+    const personalizedStages = buildPersonalizedStages(
+      results.courseId,
+      results.overallMastery,
+      results.diagnosedGaps,
+      fullRoadmapData.weakTopics || results.weakTopics,
+      fullRoadmapData.strongTopics || results.strongTopics,
+      scorePercentage,
+      fullRoadmapData.worldStages
+    );
 
     setUnlockedCourses(prev => ({
       ...prev,
@@ -1647,30 +1787,119 @@ export default function GameArena() {
         stages: personalizedStages,
         diagnosedGaps: results.diagnosedGaps,
         aiModelUsed,
-        aiRoadmapMeta
+        aiRoadmapMeta: fullRoadmapData,
+        skillLevel,
+        scorePercentage
       }
     }));
 
     setActiveTestStage(null);
     setGameState('title');
-    setMainTab('worldmap');
+    setIsAiGenerating(false);
     playSound('cosmic');
   };
 
-  // Launch Stage Test (Starts Combat Arena for this specific stage)
-  const handleLaunchStageTest = (stage: WorldStageNode) => {
-    const stageBoss = getStageBoss(selectedCourse?.id, stage.stageNumber, stage.bossId);
-    setActiveTestStage(stage);
-    setTier(stage.tier);
-    setCurrentBoss(stageBoss);
-    setBossHp(stageBoss.maxHp);
-    setBossPhase(1);
-    setPlayerHearts(activeHero.baseHearts);
-    setStreak(0);
-    setHadErrorsInTrial(false);
-    setQuestionIndex(0);
-    setGameState('arena');
-    addLog(`▶ Began Stage ${stage.stageNumber} Test: ${stage.name}! Boss: ${stageBoss.name} (${stageBoss.difficultyLabel} Tier)!`);
+  // Launch Stage Test: Checks session cache or queries Gemini for 10 dynamic MCQs, then enters Combat Arena
+  const handleLaunchStageTest = async (stage: WorldStageNode) => {
+    const courseId = selectedCourse?.id || 'course-mechanics';
+    const stageKey = `${courseId}_s${stage.stageNumber}`;
+    const nextAttempt = (stageAttemptCounts[stageKey] || 0) + 1;
+    setStageAttemptCounts(prev => ({ ...prev, [stageKey]: nextAttempt }));
+
+    setCurrentPrepStage(stage);
+    setIsPreparingStageTest(true);
+
+    const stageBoss = getStageBoss(courseId, stage.stageNumber, stage.bossId);
+
+    const initializeArenaWithQuestions = (questions: CourseQuestion[], sourceName: string) => {
+      const prioritized = prioritizeUnseenQuestions(questions);
+      setActiveBattleQuestions(prioritized);
+      setActiveTestStage(stage);
+      setTier(stage.tier);
+      setCurrentBoss(stageBoss);
+      setBossHp(stageBoss.maxHp);
+      setBossPhase(1);
+      setPlayerHp(effectiveMaxHp);
+      setDeathDefianceUsed(false);
+      setFreeReviveUsed(false);
+      setStreak(0);
+      setHadErrorsInTrial(false);
+      setQuestionIndex(0);
+      setGameState('arena');
+      setIsPreparingStageTest(false);
+      const currentClassLvl = classLevels[selectedClassId] || 1;
+      const shieldCount = (selectedClassId === 'immortal' && currentClassLvl >= 10) ? 2 : 1;
+      setImmortalShieldsRemaining(shieldCount);
+      const initialCourseHearts = getCourseHearts(courseId);
+      setCourseBattleHearts(initialCourseHearts);
+      if (initialCourseHearts > 0) {
+        addLog(`▶ [Soul Wards] Activated ${initialCourseHearts} Course Extra Heart(s) to absorb wrong answer penalties!`);
+      }
+      addLog(`▶ Began Stage ${stage.stageNumber} Test: ${stage.name}! (${sourceName}: 10 dynamic battle MCQs loaded). Boss: ${stageBoss.name}!`);
+    };
+
+    // 1. Check Session Cache
+    const cachedQuestions = getCachedStageQuestions(courseId, stage.stageNumber, nextAttempt);
+    if (cachedQuestions && cachedQuestions.length > 0) {
+      setTimeout(() => {
+        initializeArenaWithQuestions(cachedQuestions as CourseQuestion[], 'Session Cache');
+      }, 350);
+      return;
+    }
+
+    // 2. Query Gemini API for 10 dynamic MCQs
+    try {
+      const staticRefQuestions = getStageQuestions(courseId, stage.stageNumber);
+      const diagSummary = getStoredDiagnosticSummary(courseId) || getLatestDiagnosticSummary();
+      const studentStrengths = (diagSummary?.strengths && diagSummary.strengths.length > 0)
+        ? diagSummary.strengths
+        : (currentAiAnalysis?.strengths || unlockedCourses[courseId]?.aiRoadmapMeta?.strengths || []);
+      const studentWeaknesses = (diagSummary?.weaknesses && diagSummary.weaknesses.length > 0)
+        ? diagSummary.weaknesses
+        : (currentAiAnalysis?.weaknesses || unlockedCourses[courseId]?.aiRoadmapMeta?.weaknesses || []);
+      const diagnosticSkillLevel = diagSummary?.skillLevel;
+      const diagnosticScore = diagSummary?.scorePercentage;
+
+      const res = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId,
+          courseTitle: selectedCourse?.title,
+          stageNumber: stage.stageNumber,
+          topic: stage.conceptFocus || stage.name,
+          difficulty: stage.tier,
+          attempt: nextAttempt,
+          diagnosticSkillLevel,
+          diagnosticScore,
+          previousPerformance: {
+            accuracy: 78,
+            score: stage.masteryPct,
+            streak,
+            attempts: nextAttempt
+          },
+          strengths: studentStrengths,
+          weaknesses: studentWeaknesses,
+          referenceQuestions: staticRefQuestions
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.questions) && data.questions.length > 0) {
+          // Cache in session
+          setCachedStageQuestions(courseId, stage.stageNumber, data.questions, nextAttempt);
+          initializeArenaWithQuestions(data.questions as CourseQuestion[], data.source === 'gemini' ? 'Google Gemini AI' : 'Adaptive Bank');
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[QuestLearn AI] Dynamic question generation failed, engaging static bank fallback:', err);
+    }
+
+    // 3. Fallback to existing static question bank if Gemini fails
+    const fallbackBank = prioritizeUnseenQuestions(getStageQuestions(courseId, stage.stageNumber));
+    initializeArenaWithQuestions(fallbackBank, 'Static Bank Fallback');
   };
 
   // Clear Active Stage Test on Boss Defeat
@@ -1678,7 +1907,7 @@ export default function GameArena() {
     if (!activeTestStage || !selectedCourse) return;
     const courseId = selectedCourse.id;
     const currentStages = unlockedCourses[courseId]?.stages || DEFAULT_MAP_STAGES;
-    const starsEarned = playerHearts >= 4 ? 3 : playerHearts >= 2 ? 2 : 1;
+    const starsEarned = playerHp >= 8 ? 3 : playerHp >= 4 ? 2 : 1;
 
     const updatedStages = currentStages.map((st) => {
       if (st.id === activeTestStage.id) {
@@ -1702,6 +1931,8 @@ export default function GameArena() {
         stages: updatedStages
       }
     }));
+    addXp(150);
+    addGeo(100);
   };
 
   // Exit Test to World Map
@@ -1717,17 +1948,26 @@ export default function GameArena() {
     setCurrentBoss(trialBoss);
     setBossHp(trialBoss.maxHp);
     setBossPhase(1);
-    setPlayerHearts(activeHero.baseHearts);
+    setPlayerHp(effectiveMaxHp);
+    setDeathDefianceUsed(false);
+    setFreeReviveUsed(false);
     setStreak(0);
     setHadErrorsInTrial(false);
     setQuestionIndex(0);
     setGameState('arena');
+    const currentClassLvl = classLevels[selectedClassId] || 1;
+    const shieldCount = (selectedClassId === 'immortal' && currentClassLvl >= 10) ? 2 : 1;
+    setImmortalShieldsRemaining(shieldCount);
     addLog(`▶ ${activeHero.name} entered ${trialBoss.realm}! Challenge ${trialBoss.name}!`);
   };
 
   // Handle Answers
   const handleAnswer = (selectedIndex: number) => {
-    if (bossHp <= 0 || gameState !== 'arena' || heroAnimState !== 'idle' || bossAttacking || phaseTransitionActive) return;
+    if (playerHp <= 0 || bossHp <= 0 || gameState !== 'arena' || heroAnimState !== 'idle' || bossAttacking || phaseTransitionActive) return;
+
+    if (currentQuestion && (currentQuestion as any).id) {
+      markQuestionSeen((currentQuestion as any).id);
+    }
 
     const isCorrect = selectedIndex === currentQuestion.answer;
 
@@ -1735,19 +1975,59 @@ export default function GameArena() {
       const newStreak = streak + 1;
       setStreak(newStreak);
 
-      const earnedGeo = Math.round((currentQuestion.rewardGeo || 25) * activeHero.bonusGeoMultiplier);
+      const comboInfo = getComboMultiplier(newStreak, activeSkillBuffs.comboMultiplierAdd);
+      let earnedGeo = Math.round((currentQuestion.rewardGeo || 25) * activeHero.bonusGeoMultiplier * comboInfo.multiplier * (1 + (activeSkillBuffs.geoBonusPct || 0)));
+      if (newStreak >= 3 && activeSkillBuffs.streakGeoBonus > 0) {
+        earnedGeo += activeSkillBuffs.streakGeoBonus;
+      }
+      let earnedXp = Math.round((currentQuestion.rewardXp || 50) * comboInfo.multiplier * (1 + (activeSkillBuffs.xpBonusPct || 0)));
+
+      // Mage Class Passive: Earn extra XP and bonus Geo (+30% to +120%)
+      if (selectedClassId === 'mage') {
+        const mageLvl = classLevels['mage'] || 1;
+        const mageStats = CHARACTER_CLASSES.mage.getStatsForLevel(mageLvl);
+        earnedXp = Math.round(earnedXp * (1 + mageStats.primaryValue / 100));
+        earnedGeo = Math.round(earnedGeo * (1 + mageStats.primaryValue / 200));
+        triggerStanceNotification(`🔮 MAGE: +${mageStats.primaryValue}% Extra XP & Geo!`);
+      }
+
       addGeo(earnedGeo);
-      setScoreEssence((prev) => prev + (currentQuestion.rewardXp || 50));
+      addXp(earnedXp);
+      setScoreEssence((prev) => prev + earnedXp);
       playSound('geo');
 
+      // Vitality Recovery in Hearts
+      let healAmount = 0;
+
+      // Healer Class Passive: Bonus Heart recovery on correct answers
+      if (selectedClassId === 'healer') {
+        const healerLvl = classLevels['healer'] || 1;
+        const healStats = CHARACTER_CLASSES.healer.getStatsForLevel(healerLvl);
+        if (Math.random() < (healStats.primaryValue / 100)) {
+          healAmount += 1;
+          triggerStanceNotification(`💚 HEALER: +1 Bonus Heart (+${healStats.primaryValue}% Heal Rate)!`);
+          playSound('arcane');
+        }
+      }
+
       if (activeHero.id === 'byakuya' && newStreak % 2 === 0) {
-        setPlayerHearts((prev) => Math.min(activeHero.baseHearts, prev + 1));
+        healAmount += 1;
         triggerStanceNotification('🌸 PETAL BARRIER: +1 Heart restored by Senbonzakura!');
       }
 
       if (activeHero.id === 'ulquiorra_hero' && newStreak % 2 === 0) {
-        setPlayerHearts((prev) => Math.min(activeHero.baseHearts, prev + 1));
+        healAmount += 1;
         triggerStanceNotification('💚 CELLULAR REGEN: +1 Heart restored by Murciélago!');
+      }
+
+      if (healAmount > 0) {
+        setPlayerHp((prev) => calculateHeal(prev, healAmount, effectiveMaxHp).nextHp);
+        setDamagePopup({
+          amount: healAmount,
+          text: `+${healAmount} ${healAmount === 1 ? 'Heart' : 'Hearts'} HEAL`,
+          isHealing: true
+        });
+        setTimeout(() => setDamagePopup(null), 850);
       }
 
       if (activeHero.id === 'toshiro' && newStreak % 3 === 0) {
@@ -1772,113 +2052,165 @@ export default function GameArena() {
         playSound('cosmic');
       }
 
+      if (comboInfo.multiplier > 1.0) {
+        triggerStanceNotification(`🔥 ${comboInfo.tierName}: ${comboInfo.multiplier}x Multiplier!`);
+      }
+
       // Calibrate base damage so answering all stage questions vanquishes the boss
       const stageBaseDmg = activeTestStage ? Math.ceil(boss.maxHp / Math.max(1, currentQuestions.length)) : 0;
-      const totalDmg = Math.max(stageBaseDmg, stanceInfo.baseDamage + activeHero.damageBonus);
+      let totalDmg = Math.max(stageBaseDmg, stanceInfo.baseDamage + activeHero.damageBonus);
 
-      if (newStreak >= 4 || (activeHero.id === 'aizen' && newStreak >= 2)) {
-        setHeroAnimState('ash_of_war');
-        playSound('cosmic');
+      // Warrior Class Passive: +25% up to +75% damage against bosses
+      if (selectedClassId === 'warrior') {
+        const warriorLvl = classLevels['warrior'] || 1;
+        const warriorStats = CHARACTER_CLASSES.warrior.getStatsForLevel(warriorLvl);
+        totalDmg = Math.round(totalDmg * (1 + warriorStats.primaryValue / 100));
+        triggerStanceNotification(`⚔️ WARRIOR: +${warriorStats.primaryValue}% Bonus Boss Damage!`);
+      }
+
+      // Skill Tree Might Buffs
+      if (activeSkillBuffs.bossDamageBonusPct > 0) {
+        totalDmg = Math.round(totalDmg * (1 + activeSkillBuffs.bossDamageBonusPct));
+      }
+      if (bossHp <= boss.maxHp * 0.35 && activeSkillBuffs.executionerBonusPct > 0) {
+        totalDmg = Math.round(totalDmg * (1 + activeSkillBuffs.executionerBonusPct));
+        triggerStanceNotification('⚡ EXECUTIONER PERK: +40% Finisher Damage!');
+      }
+
+      let isCritHit = false;
+      if (activeSkillBuffs.criticalStrikeChance > 0 && Math.random() < activeSkillBuffs.criticalStrikeChance) {
+        totalDmg = Math.round(totalDmg * 2);
+        isCritHit = true;
+        triggerStanceNotification('💥 CRITICAL STRIKE! 2x Massive Damage!');
+      }
+
+      // Update Daily Quests & Achievements
+      setDailyQuestsState((prev) => {
+        let updated = updateDailyQuestProgress(prev, 'answer_questions', 1);
+        updated = updateDailyQuestProgress(updated, 'reach_streak', newStreak);
+        saveDailyQuestsState(updated);
+        return updated;
+      });
+
+      setAchievementsState((prev) => {
+        let r = updateAchievementProgress(prev, 'ach_first_blood', 1);
+        r = updateAchievementProgress(r.updated, 'ach_combo_novice', newStreak);
+        r = updateAchievementProgress(r.updated, 'ach_combo_master', newStreak);
+        saveAchievementsState(r.updated);
+        return r.updated;
+      });
+
+      // 1. Trigger celebration animation immediately upon correct answer!
+      setHeroAnimState('celebration');
+
+      // 2. Determine attack tier based on streak
+      const isBankaiFinisher = newStreak >= 4 || (activeHero.id === 'aizen' && newStreak >= 2);
+      const attackAnim = isBankaiFinisher ? 'ash_of_war' : 'attack';
+      const attackSound = isBankaiFinisher ? 'cosmic' : newStreak >= 3 ? 'crimson' : newStreak >= 2 ? 'arcane' : 'slash';
+      const bonusDmg = isBankaiFinisher ? 35 : newStreak >= 3 ? 20 : 0;
+      const attackTitle = isBankaiFinisher 
+        ? `${activeHero.technique.toUpperCase()}!` 
+        : newStreak >= 3 
+        ? `${activeHero.passiveName.toUpperCase()}!` 
+        : newStreak >= 2 
+        ? `⚔️ ${activeHero.zanpakuto.toUpperCase()} SHIKAI!` 
+        : `⚔️ ${activeHero.zanpakuto.toUpperCase()} STRIKE`;
+
+      // 3. Smoothly transition from celebration jump into the forward attack lunge!
+      setTimeout(() => {
+        setHeroAnimState(attackAnim);
+        playSound(attackSound);
         setTimeout(() => {
-          applyBossDamage(totalDmg + 35, `${activeHero.technique.toUpperCase()}!`, true);
-        }, 500);
-      } else if (newStreak >= 3) {
-        setHeroAnimState('slash_strike');
-        playSound('crimson');
-        setTimeout(() => {
-          applyBossDamage(totalDmg + 20, `${activeHero.passiveName.toUpperCase()}!`, false);
-        }, 450);
-      } else if (newStreak >= 2) {
-        setHeroAnimState('slash_strike');
-        playSound('arcane');
-        setTimeout(() => {
-          applyBossDamage(totalDmg, `⚔️ ${activeHero.zanpakuto.toUpperCase()} SHIKAI!`, false);
+          applyBossDamage(totalDmg + bonusDmg, attackTitle, isBankaiFinisher || isCritHit);
         }, 400);
-      } else {
-        setHeroAnimState('slash_strike');
-        playSound('slash');
-        setTimeout(() => {
-          applyBossDamage(totalDmg, `⚔️ ${activeHero.zanpakuto.toUpperCase()} STRIKE`, false);
-        }, 300);
-      }
+      }, 350);
     } else {
-      // Wrong Answer — Character Endurance & Damage Mitigation Mechanics
-      let heartDamage = boss.damagePerStrike || 1;
-      if (bossPhase === 2 && (boss.difficultyLabel === 'Advanced' || boss.difficultyLabel === 'Supreme Boss')) {
-        heartDamage = Math.min(3, heartDamage + 1);
-      }
-
-      // 1. Yoruichi Shihoin: 40% complete evasion on mistakes!
-      if (activeHero.id === 'yoruichi' && Math.random() < 0.40) {
-        playSound('crimson');
-        triggerStanceNotification('⚡ FLASH MIRAGE: Yoruichi dodged with Hohō!');
-        addLog(`▶ Yoruichi completely evaded ${boss.name}'s attack!`);
-        return;
-      }
-
-      // 2. Yamamoto: 8 Hearts titan & scratch immunity on 1-heart strikes!
-      if (activeHero.id === 'yamamoto') {
-        if (heartDamage === 1 && Math.random() < 0.75) {
+      // Wrong Answer — Character Class & Vitality Mechanics
+      // 0. Immortal Class Nullification (First 1-2 errors in battle cause 0 HP loss)
+      if (selectedClassId === 'immortal') {
+        if (immortalShieldsRemaining > 0) {
+          const remainingAfter = immortalShieldsRemaining - 1;
+          setImmortalShieldsRemaining(remainingAfter);
           playSound('cosmic');
-          triggerStanceNotification('☀️ ZANKA NO TACHI: 15,000,000°C Cloak vaporized the scratch strike!');
-          addLog(`▶ Yamamoto's solar cloak disintegrated ${boss.name}'s strike!`);
+          triggerStanceNotification(`👑 IMMORTAL: First wrong answer caused 0 HP loss! (${remainingAfter} shield${remainingAfter === 1 ? '' : 's'} left)`);
+          addLog(`▶ Immortal Aegis completely absorbed all damage! (0 HP loss, ${remainingAfter} shield left)`);
+          setDamagePopup({
+            amount: 0,
+            text: '0 HP (IMMORTAL AEGIS)',
+            isPlayerDamage: true
+          });
+          setTimeout(() => setDamagePopup(null), 850);
           return;
-        } else if (heartDamage > 1) {
-          heartDamage = 1;
-          triggerStanceNotification('☀️ SOLAR ENDURANCE: Yamamoto absorbed the cataclysmic blow!');
+        } else {
+          const immortalLvl = classLevels['immortal'] || 1;
+          const secondaryChance = immortalLvl >= 10 ? 0.50 : immortalLvl >= 5 ? 0.35 : 0;
+          if (secondaryChance > 0 && Math.random() < secondaryChance) {
+            playSound('cosmic');
+            triggerStanceNotification('👑 IMMORTAL: Celestial Ward deflected strike (0 HP loss)!');
+            addLog(`▶ Immortal Celestial Ward deflected ${boss.name}'s attack!`);
+            setDamagePopup({
+              amount: 0,
+              text: '0 HP (CELESTIAL WARD)',
+              isPlayerDamage: true
+            });
+            setTimeout(() => setDamagePopup(null), 850);
+            return;
+          }
         }
       }
 
-      // 3. Shunsui Kyoraku: 35% shadow slip dodge
-      if (activeHero.id === 'shunsui' && Math.random() < 0.35) {
+      // Calculate incoming damage via battleEngine
+      const guardianLvl = classLevels['guardian'] || 1;
+      const guardianStats = selectedClassId === 'guardian' ? CHARACTER_CLASSES.guardian.getStatsForLevel(guardianLvl) : null;
+      const guardianMitigationPct = guardianStats ? guardianStats.primaryValue : 0;
+
+      const calcResult = calculateIncomingDamage({
+        bossDifficultyLabel: boss.difficultyLabel,
+        bossPhase,
+        heroId: activeHero.id,
+        guardianMitigationPct,
+        immortalShieldsRemaining: 0
+      });
+
+      if (calcResult.isCompletelyNullified) {
         playSound('arcane');
-        triggerStanceNotification('🌑 KAGEONI: Shunsui slipped into the shadow floor!');
-        addLog(`▶ Shunsui vanished into shadows, avoiding ${boss.name}'s blow!`);
+        triggerStanceNotification(calcResult.nullifiedReason || 'Damage nullified!');
+        addLog(`▶ ${calcResult.nullifiedReason}`);
+        setDamagePopup({
+          amount: 0,
+          text: '0 Hearts (DEFLECTED)',
+          isPlayerDamage: true
+        });
+        setTimeout(() => setDamagePopup(null), 850);
         return;
       }
 
-      // 4. Renji Abarai: Hihi-o heavy armor mitigates multi-heart strikes to 1
-      if (activeHero.id === 'renji' && heartDamage > 1) {
-        heartDamage = 1;
-        triggerStanceNotification('🛡️ HIHI-Ō ARMOR: Zabimaru iron bone absorbed the heavy blow!');
-        addLog(`▶ Renji's heavy armor reduced ${boss.name}'s damage to 1 Heart!`);
+      // Check if Course-Specific Soul Ward (Extra Heart) absorbs the blow
+      const activeCourseId = selectedCourse?.id;
+      if (activeCourseId && courseBattleHearts > 0) {
+        const consumeRes = consumeCourseHeart(activeCourseId);
+        if (consumeRes.heartAbsorbed) {
+          setCourseBattleHearts(consumeRes.remainingHearts);
+          setStreak(0);
+          setHadErrorsInTrial(true);
+          setBossAttacking(true);
+          playSound('cosmic');
+          triggerStanceNotification(`🛡️ SOUL WARD: 1 Extra Heart absorbed the penalty! (${consumeRes.remainingHearts} remaining) Base Hearts Protected!`);
+          addLog(`▶ [Soul Ward] ${selectedCourse?.title || 'Course'} Extra Heart absorbed ${boss.name}'s attack! Base 10 Hearts protected!`);
+          setDamagePopup({
+            amount: 0,
+            text: '💖 SOUL WARD (-0 Hearts)',
+            isPlayerDamage: true
+          });
+          setTimeout(() => {
+            setBossAttacking(false);
+            setDamagePopup(null);
+          }, 850);
+          return;
+        }
       }
 
-      // 5. Ulquiorra: Death defiance (cannot be killed from above 1 heart in a single strike)
-      if (activeHero.id === 'ulquiorra_hero' && playerHearts > 1 && playerHearts - heartDamage <= 0) {
-        heartDamage = playerHearts - 1;
-        triggerStanceNotification('🦇 NIHILISTIC BARRIER: Emptiness defied fatal death!');
-      }
-
-      // 6. Kisuke Urahara: 35% chance to completely deflect attack
-      if (activeHero.id === 'urahara' && Math.random() < 0.35) {
-        playSound('arcane');
-        triggerStanceNotification('🩸 BENIHIME: Chikasumi no Tate deflected the blow!');
-        addLog(`▶ Urahara deflected ${boss.name}'s attack with Blood Mist Shield!`);
-        return;
-      }
-
-      // 7. Sosuke Aizen: 25% chance Kyoka Suigetsu illusion makes boss attack miss
-      if (activeHero.id === 'aizen' && Math.random() < 0.25) {
-        playSound('cosmic');
-        triggerStanceNotification('🌌 KYOKA SUIGETSU: The strike hit an illusion mirror!');
-        addLog(`▶ Aizen shattered reality; ${boss.name}'s strike hit a mirror clone!`);
-        return;
-      }
-
-      // 8. Rukia Kuchiki: Hakuren Frost Armor cuts boss attack damage by 50% (reduces 2 hearts to 1)
-      if (activeHero.id === 'rukia' && heartDamage > 1) {
-        heartDamage = 1;
-        triggerStanceNotification('❄️ HAKUREN FROST SHIELD: Permafrost absorbed the lethal impact!');
-        addLog(`▶ Rukia's absolute zero armor reduced ${boss.name}'s damage to 1 Heart!`);
-      }
-
-      // 9. Kenpachi Zaraki: Unstoppable Colossal Resilience (7 base hearts & absorbs multi-heart blow)
-      if (activeHero.id === 'kenpachi' && heartDamage > 1) {
-        heartDamage = 1;
-        triggerStanceNotification('👹 DEMON REIATSU: Kenpachi absorbed the heavy blow with ease!');
-        addLog(`▶ Kenpachi shrugged off ${boss.name}'s devastating strike!`);
-      }
+      const damageDealt = Math.max(1, calcResult.damageDealt);
 
       setStreak(0);
       setHadErrorsInTrial(true);
@@ -1886,16 +2218,48 @@ export default function GameArena() {
       playSound('hurt');
 
       const currentBossAttack = bossPhase === 2 ? boss.attackNameP2 : boss.attackNameP1;
-      addLog(`▶ Wrong! ${boss.name} strikes with ${currentBossAttack}!`);
+      addLog(`▶ Wrong! ${boss.name} strikes with ${currentBossAttack} (-${damageDealt} ${damageDealt === 1 ? 'Heart' : 'Hearts'})!`);
 
       setTimeout(() => {
         setPlayerHurt(true);
+        setHeroAnimState('hurt');
         setScreenShake('heavy');
-        const nextHearts = Math.max(0, playerHearts - heartDamage);
-        setPlayerHearts(nextHearts);
+
+        let isDead = false;
+
+        setPlayerHp((prev) => {
+          const outcome = applyDamageWithRevive({
+            currentHp: prev,
+            damageDealt,
+            heroId: activeHero.id,
+            deathDefianceUsed
+          });
+
+          if (outcome.defiedDeath) {
+            setDeathDefianceUsed(true);
+            playSound('crimson');
+            triggerStanceNotification('⚡ MUGETSU DEFIANCE: Endured mortal strike with 1 Heart!');
+            addLog('▶ Ichigo accessed Final Getsuga Tenshō to endure defeat at 1 Heart!');
+          }
+
+          if (outcome.isDefeated && selectedClassId === 'immortal' && !freeReviveUsed) {
+            setFreeReviveUsed(true);
+            playSound('cosmic');
+            triggerStanceNotification('👑 IMMORTAL ASCENSION: Celestial Rebirth at 5 Hearts!');
+            addLog('▶ Immortal Class passive triggered free Celestial Rebirth with 5 Hearts!');
+            return 5;
+          }
+
+          if (outcome.isDefeated) {
+            isDead = true;
+          }
+
+          return outcome.nextHp;
+        });
+
         setDamagePopup({
-          amount: heartDamage,
-          text: heartDamage > 1 ? `⚡ LETHAL ${currentBossAttack.toUpperCase()}` : `⚡ ${currentBossAttack.toUpperCase()}`,
+          amount: damageDealt,
+          text: `-${damageDealt} ${damageDealt === 1 ? 'Heart' : 'Hearts'}`,
           isPlayerDamage: true
         });
 
@@ -1905,16 +2269,45 @@ export default function GameArena() {
           setScreenShake('none');
           setDamagePopup(null);
 
-          if (nextHearts <= 0) {
-            playSound('gameover');
-            setGameState('gameover');
-            addLog(`▶ Defeat! All hearts shattered by ${boss.name}.`);
+          if (isDead) {
+            setHeroAnimState('knockout');
+            setTimeout(() => {
+              playSound('gameover');
+              setGameState('gameover');
+            }, 1000);
           } else {
-            // Advance to next question
-            setQuestionIndex((prev) => prev + 1);
+            setHeroAnimState('idle');
           }
         }, 600);
       }, 350);
+    }
+  };
+
+  const handlePhoenixRevive = () => {
+    const effectiveCost = Math.round(PHOENIX_REVIVE_GEO_COST * (1 - (activeSkillBuffs.reviveDiscountPct || 0)));
+    const res = executeRevive({
+      currentGeo: geo,
+      isImmortalClass: selectedClassId === 'immortal',
+      freeReviveAvailable: !freeReviveUsed,
+      reviveCost: effectiveCost,
+      reviveHp: DEFAULT_REVIVE_HEARTS
+    });
+
+    if (res.success) {
+      setPlayerHp(res.nextHp);
+      setHeroAnimState('idle');
+      if (res.usedFreeRevive) {
+        setFreeReviveUsed(true);
+      } else {
+        setGeo(res.nextGeo);
+        try {
+          localStorage.setItem('questlearn_bleach_geo', res.nextGeo.toString());
+        } catch {}
+      }
+      setGameState('arena');
+      playSound('phase2');
+      triggerStanceNotification('🔥 PHOENIX REBIRTH: Risen with 5 Hearts to resume battle!');
+      addLog(`▶ Phoenix Rebirth activated! Risen with 5 Hearts!`);
     }
   };
 
@@ -1956,13 +2349,34 @@ export default function GameArena() {
         playSound('cosmic');
         confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
         
-        addGeo(150);
+        const bossGeoReward = 150 + (activeSkillBuffs.bossGeoBonus || 0);
+        addGeo(bossGeoReward);
         if (!hadErrorsInTrial) {
           addGeo(200);
           setIsFlawlessVictory(true);
         } else {
           setIsFlawlessVictory(false);
         }
+
+        const bossXpReward = Math.round(100 * (1 + (activeSkillBuffs.bossXpBonusPct || 0)));
+        addXp(bossXpReward);
+
+        // Update quests and achievements
+        setDailyQuestsState((prev) => {
+          const updated = updateDailyQuestProgress(prev, 'defeat_boss', 1);
+          saveDailyQuestsState(updated);
+          return updated;
+        });
+
+        setAchievementsState((prev) => {
+          let r = updateAchievementProgress(prev, 'ach_boss_slayer', 1);
+          r = updateAchievementProgress(r.updated, 'ach_boss_legend', 1);
+          if (!hadErrorsInTrial) {
+            r = updateAchievementProgress(r.updated, 'ach_flawless_victory', 1);
+          }
+          saveAchievementsState(r.updated);
+          return r.updated;
+        });
 
         setHeroAnimState('idle');
         setBossRecoil(false);
@@ -1992,6 +2406,11 @@ export default function GameArena() {
       setScreenShake('none');
       setPhaseTransitionActive(false);
       setQuestionIndex((prev) => prev + 1);
+      if (activeSkillBuffs.phase2Heal > 0) {
+        const p2Heal = Math.max(1, Math.round(activeSkillBuffs.phase2Heal / 10));
+        setPlayerHp((prev) => calculateHeal(prev, p2Heal, effectiveMaxHp).nextHp);
+        triggerStanceNotification(`🌿 RESILIENCE: +${p2Heal} Hearts Phase 2 Recovery!`);
+      }
       addLog(`▶ ${boss.name} unlocked PHASE 2: ${boss.phase2TransformationName}!`);
     }, 2800);
   };
@@ -2007,11 +2426,26 @@ export default function GameArena() {
   };
 
   const triggerArmoryTestAttack = () => {
-    setArmoryAnimState('test_attack');
-    playSound('slash');
-    setTimeout(() => {
-      setArmoryAnimState('idle');
-    }, 600);
+    triggerArmoryAnimPreview('attack');
+  };
+
+  const triggerArmoryAnimPreview = (state: string) => {
+    setArmoryAnimState(state);
+    if (state === 'attack' || state === 'test_attack') {
+      playSound('slash');
+    } else if (state === 'celebration') {
+      playSound('arcane');
+    } else if (state === 'hurt') {
+      playSound('hurt');
+    } else if (state === 'dance') {
+      playSound('cosmic');
+    }
+    if (state !== 'idle' && state !== 'dance') {
+      const duration = state === 'knockout' ? 1400 : state === 'celebration' ? 850 : 650;
+      setTimeout(() => {
+        setArmoryAnimState('idle');
+      }, duration);
+    }
   };
 
   // -------------------------------------------------------------
@@ -2019,7 +2453,7 @@ export default function GameArena() {
   // -------------------------------------------------------------
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#030712] text-slate-100 flex items-center justify-center font-mono select-none">
+      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex items-center justify-center font-mono select-none">
         <div className="flex flex-col items-center space-y-3">
           <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs text-amber-400 font-bold uppercase tracking-widest">
@@ -2036,7 +2470,7 @@ export default function GameArena() {
   if (!activeTestStage && gameState !== 'shop') {
     if (mainTab === 'dashboard') {
       return (
-        <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2046,6 +2480,13 @@ export default function GameArena() {
             onLogout={() => setCurrentUser(null)}
             activeTestStage={activeTestStage}
             onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
           />
           <main className="flex-1 pb-12">
             <DashboardView
@@ -2053,10 +2494,10 @@ export default function GameArena() {
               onLaunchDiagnostic={() => setMainTab('diagnostic')}
               onNavigateProfile={() => setMainTab('courses')}
               playerStats={{
-                level: currentUser?.level || 4,
-                totalXp: 1450 + scoreEssence,
-                nextLevelXp: 2000,
-                streakDays: Math.max(1, streak),
+                level: playerLevelInfo.level,
+                totalXp: playerLevelInfo.totalXp,
+                nextLevelXp: playerLevelInfo.nextLevelXpRequired,
+                streakDays: dailyStreakState.streakDays,
                 geoBalance: geo,
                 questionsAnswered: 84 + questionIndex,
                 accuracyRate: 78
@@ -2069,13 +2510,22 @@ export default function GameArena() {
             onLoginSuccess={(u) => setCurrentUser(u)}
             currentUser={currentUser}
           />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
         </div>
       );
     }
 
     if (mainTab === 'courses') {
       return (
-        <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2085,6 +2535,13 @@ export default function GameArena() {
             onLogout={() => setCurrentUser(null)}
             activeTestStage={activeTestStage}
             onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
           />
           <main className="flex-1 pb-12">
             <CoursesView
@@ -2098,6 +2555,14 @@ export default function GameArena() {
                 setSelectedCourse(c);
                 setMainTab('worldmap');
               }}
+              onOpenLectureNotes={(c) => {
+                setSelectedCourse(c);
+                setMainTab('notes');
+              }}
+              onOpenLab={(c) => {
+                setSelectedCourse(c);
+                setMainTab('labs');
+              }}
             />
           </main>
           <LoginModal
@@ -2105,6 +2570,15 @@ export default function GameArena() {
             onClose={() => setIsLoginModalOpen(false)}
             onLoginSuccess={(u) => setCurrentUser(u)}
             currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
           />
         </div>
       );
@@ -2115,7 +2589,7 @@ export default function GameArena() {
       const currentCourseStages = unlockedCourses[selectedCourse.id]?.stages || DEFAULT_MAP_STAGES;
 
       return (
-        <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2125,6 +2599,13 @@ export default function GameArena() {
             onLogout={() => setCurrentUser(null)}
             activeTestStage={activeTestStage}
             onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
           />
           <main className="flex-1 pb-12">
             <WorldMapView
@@ -2146,6 +2627,21 @@ export default function GameArena() {
               }}
               aiModelUsed={unlockedCourses[selectedCourse.id]?.aiModelUsed}
               aiRoadmapMeta={unlockedCourses[selectedCourse.id]?.aiRoadmapMeta}
+              skillLevel={unlockedCourses[selectedCourse.id]?.skillLevel}
+              scorePercentage={unlockedCourses[selectedCourse.id]?.scorePercentage}
+              onViewAiAnalysis={() => setMainTab('ai-analysis')}
+              onOpenInteractiveNotes={(cId, stgNum) => {
+                const found = ACADEMIC_COURSES.find(c => c.id === cId);
+                if (found) setSelectedCourse(found);
+                setMainTab('notes');
+              }}
+              onOpenLab={(cId, stgNum) => {
+                const found = ACADEMIC_COURSES.find(c => c.id === cId);
+                if (found) setSelectedCourse(found);
+                setMainTab('labs');
+              }}
+              onRewardXp={(amt) => addXp(amt)}
+              onRewardGeo={(amt) => addGeo(amt)}
             />
           </main>
           <ProfileInspectionModal
@@ -2159,13 +2655,32 @@ export default function GameArena() {
             onLoginSuccess={(u) => setCurrentUser(u)}
             currentUser={currentUser}
           />
+          <BattlePrepModal
+            isOpen={isPreparingStageTest}
+            stage={currentPrepStage}
+            courseTitle={selectedCourse.title}
+            attempt={currentPrepStage ? (stageAttemptCounts[`${selectedCourse.id}_s${currentPrepStage.stageNumber}`] || 1) : 1}
+            strengths={currentAiAnalysis?.strengths || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta?.strengths || []}
+            weaknesses={currentAiAnalysis?.weaknesses || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta?.weaknesses || []}
+            extraHearts={selectedCourse ? getCourseHearts(selectedCourse.id) : 0}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
         </div>
       );
     }
 
-    if (mainTab === 'characters') {
+    if (mainTab === 'ai-analysis') {
+      const activeAnalysis = currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta;
       return (
-        <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2175,6 +2690,64 @@ export default function GameArena() {
             onLogout={() => setCurrentUser(null)}
             activeTestStage={activeTestStage}
             onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(activeAnalysis)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
+          />
+          <main className="flex-1 pb-12">
+            <AiAnalysisView
+              course={selectedCourse}
+              analysis={activeAnalysis}
+              isLoading={isAiGenerating}
+              overallScore={latestDiagnosticScore}
+              onContinueToWorldMap={() => setMainTab('worldmap')}
+              onRetakeDiagnostic={() => setMainTab('diagnostic')}
+              onSwitchCourse={() => setMainTab('courses')}
+              aiModelUsed={unlockedCourses[selectedCourse.id]?.aiModelUsed || 'Google Gemini 2.5 Flash'}
+            />
+          </main>
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={(u) => setCurrentUser(u)}
+            currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (mainTab === 'characters') {
+      return (
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+          <UnifiedHeader 
+            mainTab={mainTab} 
+            setMainTab={setMainTab} 
+            geo={geo} 
+            currentUser={currentUser}
+            onOpenLogin={() => setIsLoginModalOpen(true)}
+            onLogout={() => setCurrentUser(null)}
+            activeTestStage={activeTestStage}
+            onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
           />
           <main className="flex-1 pb-12">
             <CharactersView
@@ -2185,6 +2758,10 @@ export default function GameArena() {
               onOpenArena={() => {
                 startTrial('easy');
               }}
+              selectedClassId={selectedClassId}
+              classLevels={classLevels}
+              onSelectClass={handleSelectClass}
+              onUpgradeClass={handleUpgradeClass}
             />
           </main>
           <LoginModal
@@ -2193,13 +2770,22 @@ export default function GameArena() {
             onLoginSuccess={(u) => setCurrentUser(u)}
             currentUser={currentUser}
           />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
         </div>
       );
     }
 
     if (mainTab === 'diagnostic') {
       return (
-        <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
           <UnifiedHeader 
             mainTab={mainTab} 
             setMainTab={setMainTab} 
@@ -2209,6 +2795,13 @@ export default function GameArena() {
             onLogout={() => setCurrentUser(null)}
             activeTestStage={activeTestStage}
             onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
           />
           <main className="flex-1 pb-12">
             <DiagnosticQuizView
@@ -2221,6 +2814,263 @@ export default function GameArena() {
             onClose={() => setIsLoginModalOpen(false)}
             onLoginSuccess={(u) => setCurrentUser(u)}
             currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (mainTab === 'skilltree') {
+      return (
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+          <UnifiedHeader 
+            mainTab={mainTab} 
+            setMainTab={setMainTab} 
+            geo={geo} 
+            currentUser={currentUser}
+            onOpenLogin={() => setIsLoginModalOpen(true)}
+            onLogout={() => setCurrentUser(null)}
+            activeTestStage={activeTestStage}
+            onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
+          />
+          <main className="flex-1 pb-12">
+            <SkillTreeView
+              unlockedNodeIds={unlockedSkillNodeIds}
+              skillPointsAvailable={playerLevelInfo.skillPointsAvailable}
+              onUnlockNode={handleUnlockSkillNode}
+              playerLevel={playerLevelInfo.level}
+            />
+          </main>
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={(u) => setCurrentUser(u)}
+            currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (mainTab === 'quests') {
+      return (
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+          <UnifiedHeader 
+            mainTab={mainTab} 
+            setMainTab={setMainTab} 
+            geo={geo} 
+            currentUser={currentUser}
+            onOpenLogin={() => setIsLoginModalOpen(true)}
+            onLogout={() => setCurrentUser(null)}
+            activeTestStage={activeTestStage}
+            onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
+          />
+          <main className="flex-1 pb-12">
+            <QuestsAndStreaksView
+              streakState={dailyStreakState}
+              questsState={dailyQuestsState}
+              geo={geo}
+              onClaimQuestReward={handleClaimQuestReward}
+              onBuyStreakShield={handleBuyStreakShield}
+              onClaimStreakMilestone={handleClaimStreakMilestone}
+            />
+          </main>
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={(u) => setCurrentUser(u)}
+            currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (mainTab === 'achievements') {
+      return (
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+          <UnifiedHeader 
+            mainTab={mainTab} 
+            setMainTab={setMainTab} 
+            geo={geo} 
+            currentUser={currentUser}
+            onOpenLogin={() => setIsLoginModalOpen(true)}
+            onLogout={() => setCurrentUser(null)}
+            activeTestStage={activeTestStage}
+            onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
+          />
+          <main className="flex-1 pb-12">
+            <AchievementsView
+              achievements={achievementsState}
+              onClaimAchievement={handleClaimAchievement}
+            />
+          </main>
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={(u) => setCurrentUser(u)}
+            currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (mainTab === 'notes') {
+      return (
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+          <UnifiedHeader 
+            mainTab={mainTab} 
+            setMainTab={setMainTab} 
+            geo={geo} 
+            currentUser={currentUser}
+            onOpenLogin={() => setIsLoginModalOpen(true)}
+            onLogout={() => setCurrentUser(null)}
+            activeTestStage={activeTestStage}
+            onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
+          />
+          <main className="flex-1 pb-12">
+            <InteractiveLectureNotesView
+              initialCourseId={selectedCourse?.id || 'course-mechanics'}
+              initialStageNumber={1}
+              onRewardXp={(amt) => addXp(amt)}
+              onRewardGeo={(amt) => addGeo(amt)}
+              onStartStageTest={(courseId, stageNum) => {
+                const course = ACADEMIC_COURSES.find(c => c.id === courseId) || selectedCourse;
+                setSelectedCourse(course);
+                const stages = unlockedCourses[courseId]?.stages || DEFAULT_MAP_STAGES;
+                const stageNode = stages.find(s => s.stageNumber === stageNum) || stages[0];
+                handleLaunchStageTest(stageNode);
+              }}
+            />
+          </main>
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={(u) => setCurrentUser(u)}
+            currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (mainTab === 'labs') {
+      return (
+        <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
+          <UnifiedHeader 
+            mainTab={mainTab} 
+            setMainTab={setMainTab} 
+            geo={geo} 
+            currentUser={currentUser}
+            onOpenLogin={() => setIsLoginModalOpen(true)}
+            onLogout={() => setCurrentUser(null)}
+            activeTestStage={activeTestStage}
+            onExitTest={handleExitTest}
+            hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+            selectedClassId={selectedClassId}
+            classLevels={classLevels}
+            playerLevelInfo={playerLevelInfo}
+            streakDays={dailyStreakState.streakDays}
+            unclaimedQuestsCount={unclaimedQuestsCount}
+            unclaimedAchievementsCount={unclaimedAchievementsCount}
+          />
+          <main className="flex-1 pb-12">
+            <InteractiveLabView
+              key={selectedCourse?.id || 'course-mechanics'}
+              initialCourseId={selectedCourse?.id || 'course-mechanics'}
+              initialStageNumber={1}
+              onRewardXp={(amt) => addXp(amt)}
+              onRewardGeo={(amt) => addGeo(amt)}
+              onOpenLectureNotes={(courseId, stageNum) => {
+                const course = ACADEMIC_COURSES.find(c => c.id === courseId) || selectedCourse;
+                setSelectedCourse(course);
+                setMainTab('notes');
+              }}
+            />
+          </main>
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={(u) => setCurrentUser(u)}
+            currentUser={currentUser}
+          />
+          <LevelUpModal
+            isOpen={isLevelUpModalOpen}
+            newLevel={newLevelAchieved}
+            onClose={() => setIsLevelUpModalOpen(false)}
+            onGoToSkillTree={() => {
+              setIsLevelUpModalOpen(false);
+              setMainTab('skilltree');
+            }}
           />
         </div>
       );
@@ -2236,7 +3086,7 @@ export default function GameArena() {
     const canAfford = geo >= inspectedHero.geoCost;
 
     return (
-      <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
         <UnifiedHeader 
           mainTab={mainTab} 
           setMainTab={setMainTab} 
@@ -2244,6 +3094,12 @@ export default function GameArena() {
           currentUser={currentUser}
           onOpenLogin={() => setIsLoginModalOpen(true)}
           onLogout={() => setCurrentUser(null)}
+          selectedClassId={selectedClassId}
+          classLevels={classLevels}
+          playerLevelInfo={playerLevelInfo}
+          streakDays={dailyStreakState.streakDays}
+          unclaimedQuestsCount={unclaimedQuestsCount}
+          unclaimedAchievementsCount={unclaimedAchievementsCount}
         />
         <main className="flex-1 flex flex-col items-center justify-center p-3 md:p-6 select-none overflow-hidden relative">
         <div className="absolute inset-0 crt-overlay z-30 pointer-events-none" />
@@ -2305,27 +3161,100 @@ export default function GameArena() {
                 />
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons & Animation Studio */}
               <div className="w-full flex flex-col gap-2 z-10">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-cyan-400" /> Animation Studio
+                  </span>
+                  <span className="text-[9px] text-cyan-400 font-mono font-bold bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded">
+                    {armoryAnimState.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-1.5">
                   <button
-                    onClick={triggerArmoryTestAttack}
-                    disabled={armoryAnimState !== 'idle'}
-                    className="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1.5 transition active:scale-95"
+                    onClick={() => triggerArmoryAnimPreview('idle')}
+                    className={`py-1.5 px-1 text-[9px] font-bold rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${
+                      armoryAnimState === 'idle'
+                        ? 'bg-slate-800 border-cyan-500 text-cyan-300'
+                        : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
                   >
-                    <Swords className="w-3.5 h-3.5 text-cyan-400" /> Test Attack
+                    <span>🫁</span>
+                    <span>Breathing</span>
                   </button>
 
                   <button
-                    onClick={() => {
-                      setInspectedRemembrance(inspectedHero);
-                      setShowRemembranceModal(true);
-                    }}
-                    className="py-2 bg-slate-900 hover:bg-amber-950/60 border border-amber-500/40 text-amber-300 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1.5 transition active:scale-95"
+                    onClick={() => triggerArmoryAnimPreview('celebration')}
+                    className={`py-1.5 px-1 text-[9px] font-bold rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${
+                      armoryAnimState === 'celebration'
+                        ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
+                        : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-amber-400" /> Read Lore
+                    <span>🎉</span>
+                    <span>Celebrate</span>
+                  </button>
+
+                  <button
+                    onClick={() => triggerArmoryAnimPreview('hurt')}
+                    className={`py-1.5 px-1 text-[9px] font-bold rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${
+                      armoryAnimState === 'hurt'
+                        ? 'bg-rose-950 border-rose-500 text-rose-300'
+                        : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <span>💥</span>
+                    <span>Hurt</span>
+                  </button>
+
+                  <button
+                    onClick={() => triggerArmoryAnimPreview('attack')}
+                    className={`py-1.5 px-1 text-[9px] font-bold rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${
+                      armoryAnimState === 'attack'
+                        ? 'bg-cyan-950 border-cyan-500 text-cyan-300'
+                        : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <span>⚔️</span>
+                    <span>Attack</span>
+                  </button>
+
+                  <button
+                    onClick={() => triggerArmoryAnimPreview('dance')}
+                    className={`py-1.5 px-1 text-[9px] font-bold rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${
+                      armoryAnimState === 'dance'
+                        ? 'bg-amber-950 border-amber-500 text-amber-300'
+                        : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <span>🕺</span>
+                    <span>Dance</span>
+                  </button>
+
+                  <button
+                    onClick={() => triggerArmoryAnimPreview('knockout')}
+                    className={`py-1.5 px-1 text-[9px] font-bold rounded-lg border flex flex-col items-center justify-center gap-0.5 transition ${
+                      armoryAnimState === 'knockout'
+                        ? 'bg-purple-950 border-purple-500 text-purple-300'
+                        : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <span>💫</span>
+                    <span>Knockout</span>
                   </button>
                 </div>
+
+                <button
+                  onClick={() => {
+                    setInspectedRemembrance(inspectedHero);
+                    setShowRemembranceModal(true);
+                  }}
+                  className="w-full py-2 bg-slate-900 hover:bg-amber-950/60 border border-amber-500/40 text-amber-300 font-bold rounded-lg text-[10px] flex items-center justify-center gap-1.5 transition active:scale-95"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-amber-400" /> Read Lore & Bankai
+                </button>
 
                 <button
                   onClick={() => handleHeroAction(inspectedHero)}
@@ -2364,16 +3293,27 @@ export default function GameArena() {
             {/* Right: Detailed Lore, Stats & Selection Carousel */}
             <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                <div className="flex justify-between items-start mb-2">
+                <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
                   <div>
-                    <h2 className="text-lg font-black text-slate-100 uppercase tracking-wide">
-                      {inspectedHero.name}
-                    </h2>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h2 className="text-lg font-black text-slate-100 uppercase tracking-wide">
+                        {inspectedHero.name}
+                      </h2>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border flex items-center gap-1 ${CLAN_METADATA[inspectedHero.clanId]?.badgeBg || 'bg-slate-900 text-slate-400 border-slate-700'}`}>
+                        <span>{CLAN_METADATA[inspectedHero.clanId]?.iconSymbol || '⚔️'}</span>
+                        <span>{CLAN_METADATA[inspectedHero.clanId]?.badgeLabel || 'WARRIOR'} CLAN</span>
+                      </span>
+                    </div>
                     <span className="text-[10px] text-amber-400 font-bold">{inspectedHero.division}</span>
                   </div>
-                  <span className="text-xs font-black text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2.5 py-1 rounded">
-                    {inspectedHero.geoCost === 0 ? 'FREE STARTER' : `${inspectedHero.geoCost} GEO`}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2.5 py-1 rounded flex items-center gap-1">
+                      <span>⚡</span> PWR {inspectedHero.powerRating}
+                    </span>
+                    <span className="text-xs font-black text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2.5 py-1 rounded">
+                      {inspectedHero.geoCost === 0 ? 'FREE STARTER' : `${inspectedHero.geoCost} GEO`}
+                    </span>
+                  </div>
                 </div>
 
                 <p className="text-xs text-slate-400 mb-3 leading-relaxed">
@@ -2392,25 +3332,32 @@ export default function GameArena() {
                 </div>
 
                 {/* Combat Stats Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
-                    <span className="text-[9px] text-slate-500 font-bold uppercase block">Starting Hearts</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase block">Vitality Pool</span>
                     <span className="text-rose-400 font-black flex items-center gap-1 mt-0.5">
-                      <Heart className="w-3 h-3 fill-rose-500" /> {inspectedHero.baseHearts} Hearts
+                      <Heart className="w-3 h-3 text-rose-400 fill-rose-500" /> 10 Hearts
                     </span>
                   </div>
 
-                  <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
-                    <span className="text-[9px] text-slate-500 font-bold uppercase block">Geo Multiplier</span>
+                  <div className="bg-slate-900/80 p-2 rounded-lg border border-amber-500/30">
+                    <span className="text-[9px] text-amber-400 font-bold uppercase block">Power Rating</span>
                     <span className="text-amber-300 font-black flex items-center gap-1 mt-0.5">
-                      <Coins className="w-3 h-3" /> {inspectedHero.bonusGeoMultiplier}x Earned
+                      <span>⚡</span> {inspectedHero.powerRating}
                     </span>
                   </div>
 
                   <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
                     <span className="text-[9px] text-slate-500 font-bold uppercase block">Damage Bonus</span>
                     <span className="text-cyan-300 font-black flex items-center gap-1 mt-0.5">
-                      <Zap className="w-3 h-3" /> +{inspectedHero.damageBonus} Base DMG
+                      <Zap className="w-3 h-3" /> +{inspectedHero.damageBonus} DMG
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase block">Geo Multiplier</span>
+                    <span className="text-amber-300 font-black flex items-center gap-1 mt-0.5">
+                      <Coins className="w-3 h-3" /> {inspectedHero.bonusGeoMultiplier}x
                     </span>
                   </div>
                 </div>
@@ -2427,6 +3374,7 @@ export default function GameArena() {
                     const unlocked = unlockedHeroIds.includes(hero.id);
                     const equipped = selectedHeroId === hero.id;
                     const isSelectedCard = previewHeroId === hero.id;
+                    const heroClan = CLAN_METADATA[hero.clanId];
 
                     return (
                       <button
@@ -2442,7 +3390,16 @@ export default function GameArena() {
                           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
                         )}
                         <div>
-                          <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border flex items-center gap-0.5 ${heroClan?.badgeBg || 'bg-slate-900 text-slate-400 border-slate-700'}`}>
+                              <span>{heroClan?.iconSymbol}</span>
+                              <span>{heroClan?.badgeLabel}</span>
+                            </span>
+                            <span className="text-[9px] font-bold text-amber-300">
+                              ⚡{hero.powerRating}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between mb-0.5">
                             <span className="text-xs font-black text-slate-200 truncate">{hero.name}</span>
                           </div>
                           <span className="text-[9px] text-slate-400 block truncate">{hero.zanpakuto}</span>
@@ -2499,6 +3456,15 @@ export default function GameArena() {
         onLoginSuccess={(u) => setCurrentUser(u)}
         currentUser={currentUser}
       />
+      <LevelUpModal
+        isOpen={isLevelUpModalOpen}
+        newLevel={newLevelAchieved}
+        onClose={() => setIsLevelUpModalOpen(false)}
+        onGoToSkillTree={() => {
+          setIsLevelUpModalOpen(false);
+          setMainTab('skilltree');
+        }}
+      />
       </div>
     );
   }
@@ -2508,7 +3474,7 @@ export default function GameArena() {
   // -------------------------------------------------------------
   if (gameState === 'title') {
     return (
-      <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+      <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
         <UnifiedHeader 
           mainTab={mainTab} 
           setMainTab={setMainTab} 
@@ -2516,6 +3482,12 @@ export default function GameArena() {
           currentUser={currentUser}
           onOpenLogin={() => setIsLoginModalOpen(true)}
           onLogout={() => setCurrentUser(null)}
+          selectedClassId={selectedClassId}
+          classLevels={classLevels}
+          playerLevelInfo={playerLevelInfo}
+          streakDays={dailyStreakState.streakDays}
+          unclaimedQuestsCount={unclaimedQuestsCount}
+          unclaimedAchievementsCount={unclaimedAchievementsCount}
         />
         <main className="flex-1 flex flex-col items-center justify-center p-4 select-none overflow-hidden relative">
         <div className="absolute inset-0 crt-overlay z-30 pointer-events-none" />
@@ -2559,7 +3531,9 @@ export default function GameArena() {
               <span className="text-xs font-black text-amber-300">{activeHero.name}</span>
               <p className="text-[10px] text-slate-400">{activeHero.title}</p>
               <div className="mt-1 flex items-center justify-center gap-3 text-[9px] text-cyan-400 font-bold">
-                <span>❤️ {activeHero.baseHearts} Hearts</span>
+                <span className="flex items-center gap-1 text-rose-400">
+                  <Heart className="w-2.5 h-2.5 text-rose-400 fill-rose-500" /> 10 Hearts
+                </span>
                 <span>⚔️ {activeHero.zanpakuto}</span>
                 <span>🪙 {activeHero.bonusGeoMultiplier}x Geo</span>
               </div>
@@ -2680,9 +3654,21 @@ export default function GameArena() {
           <h1 className="text-4xl md:text-5xl font-black text-rose-600 tracking-widest uppercase drop-shadow-[0_0_25px_#ef4444]">
             YOU DIED
           </h1>
-          <p className="text-slate-400 text-xs mt-2 mb-6">
-            All hearts were shattered by <span className="text-rose-400 font-bold">{boss.name}</span> in {boss.realm}. Your spiritual pressure has evaporated.
+          <p className="text-slate-400 text-xs mt-2 mb-3">
+            Your HP was depleted to 0 by <span className="text-rose-400 font-bold">{boss.name}</span> in {boss.realm}. Your spiritual pressure has evaporated.
           </p>
+
+          {/* Fallen Champion Sprite with Knockout Animation & Dizzy Stars */}
+          <div className="my-3 py-2 flex flex-col items-center justify-center relative min-h-[130px] bg-slate-950/70 border border-rose-900/50 rounded-xl shadow-inner">
+            <BleachPixelSprite
+              heroId={activeHero.id}
+              animState="knockout"
+              isHurt={false}
+            />
+            <span className="text-[10px] text-rose-400 font-mono font-bold mt-2 uppercase tracking-widest flex items-center gap-1.5 bg-rose-950/80 border border-rose-800/80 px-3 py-0.5 rounded-full shadow-lg">
+              <span>💫</span> {activeHero.name} Knocked Out
+            </span>
+          </div>
 
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 mb-6 grid grid-cols-2 gap-2 text-left text-xs">
             <div>
@@ -2696,6 +3682,28 @@ export default function GameArena() {
           </div>
 
           <div className="flex flex-col gap-2.5">
+            {/* PHOENIX REVIVE / IMMORTAL REBIRTH (50 HP) */}
+            <button
+              onClick={handlePhoenixRevive}
+              disabled={selectedClassId !== 'immortal' && geo < PHOENIX_REVIVE_GEO_COST}
+              className={`w-full py-3 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 shadow-lg transition ${
+                selectedClassId === 'immortal' && !freeReviveUsed
+                  ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/40 cursor-pointer'
+                  : geo >= PHOENIX_REVIVE_GEO_COST
+                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/30 cursor-pointer'
+                  : 'bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              {selectedClassId === 'immortal' && !freeReviveUsed ? (
+                <span>👑 Immortal Rebirth: Rise with 50 HP (FREE)</span>
+              ) : geo >= PHOENIX_REVIVE_GEO_COST ? (
+                <span>🔥 Phoenix Revive: Rise with 50 HP (50 Geo)</span>
+              ) : (
+                <span>Need {PHOENIX_REVIVE_GEO_COST - geo} More Geo to Revive</span>
+              )}
+            </button>
+
             <button
               onClick={() => {
                 if (activeTestStage) {
@@ -2773,9 +3781,21 @@ export default function GameArena() {
             {boss.demigodFelledTitle}
           </h1>
 
-          <p className="text-slate-300 text-xs mt-1 mb-4">
+          <p className="text-slate-300 text-xs mt-1 mb-3">
             You defeated <span className="text-amber-400 font-bold">{boss.name}</span> in {boss.realm}!
           </p>
+
+          {/* Victory Dance Hero Sprite */}
+          <div className="my-3 py-2 flex flex-col items-center justify-center relative min-h-[130px] bg-slate-950/70 border border-amber-500/30 rounded-xl shadow-inner">
+            <BleachPixelSprite
+              heroId={activeHero.id}
+              animState="dance"
+              isHurt={false}
+            />
+            <span className="text-[10px] text-amber-300 font-mono font-bold mt-2 uppercase tracking-widest flex items-center gap-1.5 bg-amber-950/80 border border-amber-500/40 px-3 py-0.5 rounded-full shadow-lg">
+              <span>🕺</span> {activeHero.name} Victory Groove
+            </span>
+          </div>
 
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 mb-5 grid grid-cols-2 gap-2 text-left text-xs">
             <div>
@@ -2839,7 +3859,7 @@ export default function GameArena() {
   // VIEW 5: ACTIVE BATTLE ARENA
   // -------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-mono">
+    <div className="min-h-screen bg-[#020617]/40 text-slate-100 flex flex-col font-mono">
       <UnifiedHeader 
         mainTab={mainTab} 
         setMainTab={setMainTab} 
@@ -2849,6 +3869,13 @@ export default function GameArena() {
         onLogout={() => setCurrentUser(null)}
         activeTestStage={activeTestStage}
         onExitTest={handleExitTest}
+        hasAiAnalysis={Boolean(currentAiAnalysis || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta)}
+        selectedClassId={selectedClassId}
+        classLevels={classLevels}
+        playerLevelInfo={playerLevelInfo}
+        streakDays={dailyStreakState.streakDays}
+        unclaimedQuestsCount={unclaimedQuestsCount}
+        unclaimedAchievementsCount={unclaimedAchievementsCount}
       />
       <main className="flex-1 flex flex-col items-center justify-center p-3 md:p-6 font-mono select-none overflow-hidden relative">
       <div className="absolute inset-0 crt-overlay z-30 pointer-events-none" />
@@ -2914,10 +3941,19 @@ export default function GameArena() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="text-cyan-400 font-black flex items-center gap-1 text-xs bg-cyan-950/80 border border-cyan-500/50 px-2 py-1 rounded">
-              <Star className="w-3 h-3 fill-cyan-400 text-cyan-400" />
-              {streak}x
-            </div>
+            {(() => {
+              const combo = getComboMultiplier(streak, activeSkillBuffs.comboMultiplierAdd);
+              return (
+                <div 
+                  className={`font-black flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border shadow-sm ${combo.badgeColor}`}
+                  title={`${combo.bonusDescription} (Combo Streak: ${streak})`}
+                >
+                  <span className="text-xs">🔥</span>
+                  <span>{combo.multiplier}x</span>
+                  <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider">{combo.tierName}</span>
+                </div>
+              );
+            })()}
 
             <button
               onClick={() => setGameState('shop')}
@@ -2959,12 +3995,20 @@ export default function GameArena() {
 
         {/* HERO STATUS & STANCE */}
         <div className="mb-3 bg-slate-950/90 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider">
               SHINIGAMI:
             </span>
             <span className="text-[10px] bg-slate-900 text-cyan-300 px-2 py-0.5 rounded font-black border border-slate-700">
               {activeHero.name} • {stanceInfo.stanceName}
+            </span>
+            <span className="text-[10px] bg-indigo-950/90 text-indigo-300 px-2 py-0.5 rounded font-black border border-indigo-500/40 flex items-center gap-1">
+              <span>{activeClassConfig.iconSymbol}</span>
+              <span>{activeClassConfig.name} Lv.{classLevels[selectedClassId] || 1}</span>
+              <span className="text-amber-300">({activeClassStats.shortTag})</span>
+              {selectedClassId === 'immortal' && (
+                <span className="text-emerald-400 font-bold ml-0.5">[{immortalShieldsRemaining}🛡️]</span>
+              )}
             </span>
           </div>
 
@@ -3029,23 +4073,75 @@ export default function GameArena() {
               isHurt={playerHurt}
             />
 
-            {/* HEARTS */}
-            <div className="flex items-center gap-1 mt-2">
-              {Array.from({ length: activeHero.baseHearts }).map((_, idx) => (
-                <span 
-                  key={idx} 
-                  className={`text-xs transition-all duration-300 ${
-                    idx < playerHearts ? 'text-rose-500 drop-shadow-[0_0_6px_#f43f5e]' : 'text-slate-700 opacity-40'
-                  }`}
-                >
-                  {idx < playerHearts ? '❤️' : '🖤'}
+            {/* PLAYER HEARTS VITALITY CONTAINER */}
+            <div className="w-48 sm:w-56 mt-2 flex flex-col items-center space-y-1.5 p-2 rounded-xl bg-slate-950/85 border border-slate-800/80 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center justify-between w-full px-1 text-[11px] font-black font-mono">
+                <span className="text-rose-400 flex items-center gap-1.5">
+                  <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
+                  <span>Hearts:</span>
                 </span>
-              ))}
+                <span
+                  className={
+                    clampHp(playerHp, effectiveMaxHp) >= 7
+                      ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                      : clampHp(playerHp, effectiveMaxHp) >= 4
+                      ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                      : 'text-rose-500 animate-pulse drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]'
+                  }
+                >
+                  {clampHp(playerHp, effectiveMaxHp)} / {effectiveMaxHp}
+                </span>
+              </div>
+
+              {/* 10 Hearts Visual Display */}
+              <div className="flex items-center justify-center gap-1.5 flex-wrap w-full py-0.5">
+                {Array.from({ length: effectiveMaxHp }).map((_, index) => {
+                  const isAlive = index < clampHp(playerHp, effectiveMaxHp);
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={false}
+                      animate={{
+                        scale: isAlive ? [1, 1.15, 1] : 0.9,
+                        opacity: isAlive ? 1 : 0.35
+                      }}
+                      transition={{ duration: 0.25 }}
+                      className="relative"
+                    >
+                      <Heart
+                        className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-all duration-300 ${
+                          isAlive
+                            ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.85)]'
+                            : 'text-slate-700 fill-slate-900/90'
+                        }`}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Course Extra Hearts / Soul Wards */}
+              {courseBattleHearts > 0 && (
+                <div className="flex items-center justify-center space-x-1.5 w-full px-2 py-0.5 rounded-full bg-rose-950/70 border border-rose-500/50 text-[10px] shadow-sm">
+                  <span className="text-rose-300 font-bold">Soul Wards:</span>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: courseBattleHearts }).map((_, wIdx) => (
+                      <span
+                        key={wIdx}
+                        className="text-rose-400 drop-shadow-[0_0_4px_rgba(244,63,94,0.9)] text-xs animate-bounce"
+                        style={{ animationDelay: `${wIdx * 150}ms` }}
+                      >
+                        💖
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <span className="text-[9px] text-amber-400 font-black mt-0.5">{activeHero.zanpakuto}</span>
           </div>
 
-          {/* DAMAGE POPUP */}
+          {/* DAMAGE & HEALING POPUP */}
           <AnimatePresence>
             {damagePopup && (
               <motion.div
@@ -3053,13 +4149,35 @@ export default function GameArena() {
                 animate={{ opacity: 1, y: -50, scale: 1.25 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.45 }}
-                className={`absolute ${damagePopup.isPlayerDamage ? 'left-10 bottom-24' : 'right-10 bottom-28'} text-center z-40 pointer-events-none`}
+                className={`absolute ${
+                  damagePopup.isPlayerDamage || damagePopup.isHealing
+                    ? 'left-10 bottom-24'
+                    : 'right-10 bottom-28'
+                } text-center z-40 pointer-events-none`}
               >
-                <div className="text-[10px] font-black uppercase bg-slate-950/90 px-2 py-0.5 rounded border border-amber-500 text-amber-300 shadow">
+                <div
+                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border shadow ${
+                    damagePopup.isHealing
+                      ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300'
+                      : damagePopup.isPlayerDamage
+                      ? 'bg-rose-950/90 border-rose-500 text-rose-300'
+                      : 'bg-slate-950/90 border-amber-500 text-amber-300'
+                  }`}
+                >
                   {damagePopup.text}
                 </div>
-                <div className={`text-2xl md:text-3xl font-black ${damagePopup.isPlayerDamage ? 'text-rose-500 drop-shadow-[0_0_12px_#f43f5e]' : 'text-amber-400 drop-shadow-[0_0_12px_#fbbf24]'}`}>
-                  {damagePopup.isPlayerDamage ? '-1 HEART' : `-${damagePopup.amount} HP`}
+                <div
+                  className={`text-2xl md:text-3xl font-black ${
+                    damagePopup.isHealing
+                      ? 'text-emerald-400 drop-shadow-[0_0_14px_#34d399]'
+                      : damagePopup.isPlayerDamage
+                      ? 'text-rose-500 drop-shadow-[0_0_14px_#f43f5e]'
+                      : 'text-amber-400 drop-shadow-[0_0_12px_#fbbf24]'
+                  }`}
+                >
+                  {damagePopup.isHealing
+                    ? `+${damagePopup.amount} HP`
+                    : `-${damagePopup.amount} HP`}
                 </div>
               </motion.div>
             )}
@@ -3170,6 +4288,24 @@ export default function GameArena() {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={(u) => setCurrentUser(u)}
         currentUser={currentUser}
+      />
+      <BattlePrepModal
+        isOpen={isPreparingStageTest}
+        stage={currentPrepStage}
+        courseTitle={selectedCourse?.title}
+        attempt={currentPrepStage ? (stageAttemptCounts[`${selectedCourse.id}_s${currentPrepStage.stageNumber}`] || 1) : 1}
+        strengths={currentAiAnalysis?.strengths || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta?.strengths || []}
+        weaknesses={currentAiAnalysis?.weaknesses || unlockedCourses[selectedCourse.id]?.aiRoadmapMeta?.weaknesses || []}
+        extraHearts={selectedCourse ? getCourseHearts(selectedCourse.id) : 0}
+      />
+      <LevelUpModal
+        isOpen={isLevelUpModalOpen}
+        newLevel={newLevelAchieved}
+        onClose={() => setIsLevelUpModalOpen(false)}
+        onGoToSkillTree={() => {
+          setIsLevelUpModalOpen(false);
+          setMainTab('skilltree');
+        }}
       />
     </div>
   );

@@ -1359,7 +1359,8 @@ export default function LectureNotesModal({
   stage,
   diagnosedGaps = [],
   onStartTest,
-  onClaimGeo
+  onClaimGeo,
+  onOpenInteractiveNotes
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -1368,6 +1369,7 @@ export default function LectureNotesModal({
   diagnosedGaps?: string[];
   onStartTest: () => void;
   onClaimGeo: (amount: number) => void;
+  onOpenInteractiveNotes?: () => void;
 }) {
   const [claimedReward, setClaimedReward] = useState(false);
   const [activeTab, setActiveTab] = useState<'theory' | 'equations' | 'worked_example' | 'traps'>('theory');
@@ -1418,6 +1420,18 @@ export default function LectureNotesModal({
           </div>
 
           <div className="flex items-center space-x-2">
+            {onOpenInteractiveNotes && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenInteractiveNotes();
+                }}
+                className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black rounded-lg text-xs flex items-center space-x-1.5 transition cursor-pointer shadow-md shadow-cyan-500/20 uppercase tracking-wider"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
+                <span>Launch AI Study Suite</span>
+              </button>
+            )}
             {!claimedReward ? (
               <button
                 onClick={handleClaim}

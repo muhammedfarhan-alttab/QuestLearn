@@ -1,4 +1,7 @@
-export interface CourseQuestion {
+const fs = require('fs');
+const path = require('path');
+
+const COURSE_QUESTIONS_CODE = `export interface CourseQuestion {
   id: string;
   courseId: string;
   stageNumber: number;
@@ -189,7 +192,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         stageNumber: 2,
         subtopicName: 'Newtonian Force & Friction',
         questionType: 'numerical',
-        question: 'A 10.0 kg box is pulled horizontally across a rough floor with an applied force of 80 N. If the coefficient of kinetic friction μₖ = 0.30 and g = 9.8 m/s², what is the crate\'s acceleration?',
+        question: 'A 10.0 kg box is pulled horizontally across a rough floor with an applied force of 80 N. If the coefficient of kinetic friction μₖ = 0.30 and g = 9.8 m/s², what is the crate\\'s acceleration?',
         options: ['5.06 m/s²', '8.00 m/s²', '2.94 m/s²', '4.12 m/s²'],
         answer: 0,
         explanation: 'Normal force N = 10.0 × 9.8 = 98 N. Friction f_k = 0.30 × 98 = 29.4 N. Net force = 80 - 29.4 = 50.6 N. a = 50.6 / 10.0 = 5.06 m/s².',
@@ -233,13 +236,13 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         questionType: 'conceptual',
         question: 'According to Newton’s Third Law, if a horse pulls a cart forward with force F, the cart pulls back on the horse with force -F. Why does the cart accelerate forward?',
         options: [
-          'The ground exerts a forward static friction force on the horse\'s hooves that exceeds the resistive forces on the cart.',
+          'The ground exerts a forward static friction force on the horse\\'s hooves that exceeds the resistive forces on the cart.',
           'The horse exerts force before the cart reacts, creating a net forward imbalance.',
           'The mass of the horse cancels out the reaction force.',
           'Action and reaction act on the same body, producing an unbalanced net torque.'
         ],
         answer: 0,
-        explanation: 'Action-reaction forces act on different bodies. The horse accelerates because the ground pushes forward on the horse\'s hooves with greater magnitude than the backward pull from the cart.',
+        explanation: 'Action-reaction forces act on different bodies. The horse accelerates because the ground pushes forward on the horse\\'s hooves with greater magnitude than the backward pull from the cart.',
         difficulty: 'intermediate',
         rewardXp: 75,
         rewardGeo: 50
@@ -699,7 +702,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         question: 'What is the derivative of f(x) = x^(x) for x > 0?',
         options: ['x^(x) · (ln(x) + 1)', 'x · x^(x - 1)', 'x^(x) · ln(x)', 'x^(x - 1)'],
         answer: 0,
-        explanation: 'Using logarithmic differentiation: y = x^x => ln(y) = x ln(x). Differentiating: (1/y) y\' = ln(x) + x(1/x) = ln(x) + 1 => y\' = x^x (ln(x) + 1).',
+        explanation: 'Using logarithmic differentiation: y = x^x => ln(y) = x ln(x). Differentiating: (1/y) y\\' = ln(x) + x(1/x) = ln(x) + 1 => y\\' = x^x (ln(x) + 1).',
         difficulty: 'hard',
         rewardXp: 80,
         rewardGeo: 50
@@ -731,7 +734,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         question: 'Find all critical numbers of the function f(x) = x³ - 3x² - 9x + 5.',
         options: ['x = -1 and x = 3', 'x = 1 and x = -3', 'x = 3 only', 'x = 0 and x = 3'],
         answer: 0,
-        explanation: 'f\'(x) = 3x² - 6x - 9 = 3(x² - 2x - 3) = 3(x - 3)(x + 1). Setting f\'(x) = 0 yields critical points at x = 3 and x = -1.',
+        explanation: 'f\\'(x) = 3x² - 6x - 9 = 3(x² - 2x - 3) = 3(x - 3)(x + 1). Setting f\\'(x) = 0 yields critical points at x = 3 and x = -1.',
         difficulty: 'easy',
         rewardXp: 60,
         rewardGeo: 35
@@ -745,7 +748,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         question: 'Find the critical points of the function g(x) = 2x³ - 6x.',
         options: ['x = -1 and x = 1', 'x = 0 only', 'x = -√3 and x = √3', 'x = 2 and x = -2'],
         answer: 0,
-        explanation: 'g\'(x) = 6x² - 6 = 6(x² - 1) = 0 => x = ±1.',
+        explanation: 'g\\'(x) = 6x² - 6 = 6(x² - 1) = 0 => x = ±1.',
         difficulty: 'easy',
         rewardXp: 55,
         rewardGeo: 30
@@ -759,7 +762,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         question: 'What is the x-coordinate of the inflection point of the cubic curve f(x) = 2x³ - 6x² + 4x - 1?',
         options: ['x = 1', 'x = 2', 'x = 0', 'x = 3'],
         answer: 0,
-        explanation: 'f\'(x) = 6x² - 12x + 4. f\'\'(x) = 12x - 12. Setting f\'\'(x) = 0 gives 12x = 12 => x = 1. Since f\'\' changes sign at x = 1, it is an inflection point.',
+        explanation: 'f\\'(x) = 6x² - 12x + 4. f\\\'\\\'(x) = 12x - 12. Setting f\\\'\\\'(x) = 0 gives 12x = 12 => x = 1. Since f\\\'\\\' changes sign at x = 1, it is an inflection point.',
         difficulty: 'intermediate',
         rewardXp: 65,
         rewardGeo: 40
@@ -773,7 +776,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         question: 'A farmer wants to fence in a rectangular field with fixed perimeter of 400 meters. What dimensions maximize the enclosed area?',
         options: ['100 m × 100 m', '150 m × 50 m', '120 m × 80 m', '200 m × 0 m'],
         answer: 0,
-        explanation: 'Perimeter 2x + 2y = 400 => y = 200 - x. Area A(x) = x(200 - x) = 200x - x². A\'(x) = 200 - 2x = 0 => x = 100 m, y = 100 m (a square).',
+        explanation: 'Perimeter 2x + 2y = 400 => y = 200 - x. Area A(x) = x(200 - x) = 200x - x². A\\'(x) = 200 - 2x = 0 => x = 100 m, y = 100 m (a square).',
         difficulty: 'intermediate',
         rewardXp: 70,
         rewardGeo: 45
@@ -787,7 +790,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         question: 'A gardener encloses a rectangular vegetable patch adjacent to a stone wall (requiring fencing on only 3 sides). With 120 meters of fencing, what is the maximum area?',
         options: ['1800 m²', '1600 m²', '2400 m²', '900 m²'],
         answer: 0,
-        explanation: '2x + y = 120 => y = 120 - 2x. Area A(x) = x(120 - 2x) = 120x - 2x². A\'(x) = 120 - 4x = 0 => x = 30 m, y = 60 m. Max Area = 30 × 60 = 1800 m².',
+        explanation: '2x + y = 120 => y = 120 - 2x. Area A(x) = x(120 - 2x) = 120x - 2x². A\\'(x) = 120 - 4x = 0 => x = 30 m, y = 60 m. Max Area = 30 × 60 = 1800 m².',
         difficulty: 'intermediate',
         rewardXp: 75,
         rewardGeo: 45
@@ -849,7 +852,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         stageNumber: 4,
         subtopicName: 'Integration & Fundamental Theorem',
         questionType: 'analytical',
-        question: 'If F(x) = ∫ from 1 to x² of [ sqrt(t³ + 1) ] dt, what is F\'(x)?',
+        question: 'If F(x) = ∫ from 1 to x² of [ sqrt(t³ + 1) ] dt, what is F\\'(x)?',
         options: [
           '2x · sqrt(x⁶ + 1)',
           'sqrt(x⁶ + 1)',
@@ -857,7 +860,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
           'sqrt(x³ + 1)'
         ],
         answer: 0,
-        explanation: 'By the Fundamental Theorem of Calculus and Chain Rule: d/dx [∫ from a to g(x) f(t) dt] = f(g(x)) · g\'(x). Here f(x²) = sqrt((x²)³ + 1) = sqrt(x⁶ + 1), and g\'(x) = 2x.',
+        explanation: 'By the Fundamental Theorem of Calculus and Chain Rule: d/dx [∫ from a to g(x) f(t) dt] = f(g(x)) · g\\'(x). Here f(x²) = sqrt((x²)³ + 1) = sqrt(x⁶ + 1), and g\\'(x) = 2x.',
         difficulty: 'hard',
         rewardXp: 80,
         rewardGeo: 50
@@ -1142,7 +1145,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         stageNumber: 2,
         subtopicName: 'Memory & Execution Stack',
         questionType: 'conceptual',
-        question: 'In JavaScript, why does `typeof NaN` return "number"?',
+        question: 'In JavaScript, why does \`typeof NaN\` return "number"?',
         options: [
           'IEEE 754 floating-point standard specifies NaN as a numerical error value within the floating-point type.',
           'It is an unintended bug from JavaScript 1.0 that was never fixed.',
@@ -1361,10 +1364,10 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         stageNumber: 4,
         subtopicName: 'Graph Algorithms',
         questionType: 'conceptual',
-        question: 'Which problem do Prim\'s and Kruskal\'s greedy algorithms solve on a connected, undirected weighted graph?',
+        question: 'Which problem do Prim\\'s and Kruskal\\'s greedy algorithms solve on a connected, undirected weighted graph?',
         options: ['Minimum Spanning Tree (MST)', 'All-Pairs Shortest Paths', 'Maximum Bipartite Matching', 'Eulerian Path'],
         answer: 0,
-        explanation: 'Both Prim\'s and Kruskal\'s algorithms compute a Minimum Spanning Tree (MST), connecting all vertices with minimum total edge weight.',
+        explanation: 'Both Prim\\'s and Kruskal\\'s algorithms compute a Minimum Spanning Tree (MST), connecting all vertices with minimum total edge weight.',
         difficulty: 'easy',
         rewardXp: 55,
         rewardGeo: 30
@@ -1508,7 +1511,7 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         question: 'What is the electric field magnitude at distance r from an isolated point charge Q in vacuum?',
         options: ['k Q / r²', 'k Q / r', 'k Q² / r²', 'k Q / r³'],
         answer: 0,
-        explanation: 'By definition of electric field from Coulomb\'s law: E = F / q₀ = (k Q q₀ / r²) / q₀ = k Q / r².',
+        explanation: 'By definition of electric field from Coulomb\\'s law: E = F / q₀ = (k Q q₀ / r²) / q₀ = k Q / r².',
         difficulty: 'easy',
         rewardXp: 50,
         rewardGeo: 25
@@ -1741,8 +1744,8 @@ export const COURSE_STAGE_QUESTIONS: Record<string, Record<number, CourseQuestio
         stageNumber: 4,
         subtopicName: 'DC Circuits & Kirchhoff’s Laws',
         questionType: 'conceptual',
-        question: 'Kirchhoff\'s Voltage Law (Loop Rule, ∑ ΔV = 0) is a direct consequence of which conservation law?',
-        options: ['Conservation of Energy', 'Conservation of Electric Charge', 'Conservation of Angular Momentum', 'Ampère\'s Law'],
+        question: 'Kirchhoff\\'s Voltage Law (Loop Rule, ∑ ΔV = 0) is a direct consequence of which conservation law?',
+        options: ['Conservation of Energy', 'Conservation of Electric Charge', 'Conservation of Angular Momentum', 'Ampère\\'s Law'],
         answer: 0,
         explanation: 'Since the electrostatic field is conservative, the net work done moving a charge around any closed loop must equal zero, guaranteeing ∑ ΔV = 0.',
         difficulty: 'easy',
@@ -1923,3 +1926,7 @@ export function getStageQuestions(courseId: string, stageNumber: number): Course
   // Fallback to mechanics stage 1
   return COURSE_STAGE_QUESTIONS['course-mechanics'][1];
 }
+`;
+
+fs.writeFileSync(path.join(__dirname, '..', 'data', 'courseQuestions.ts'), COURSE_QUESTIONS_CODE, 'utf8');
+console.log('Successfully written expanded courseQuestions.ts');

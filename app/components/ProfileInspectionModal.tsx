@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
   Scroll, 
-  Heart, 
+  Activity, 
   Skull, 
   Zap, 
   ShieldAlert, 
@@ -28,7 +28,7 @@ export interface BleachVillainConfig {
   stageName: string;
   maxHp: number;
   color: string;
-  damagePerStrike: number; // in hearts (1, 2, or 3)
+  damagePerStrike: number; // HP dealt on boss attack (e.g. -20 HP)
   difficultyLabel: 'Introductory' | 'Elementary' | 'Intermediate' | 'Advanced' | 'Supreme Boss';
   attackNameP1: string;
   attackNameP2: string;
@@ -158,9 +158,9 @@ export default function ProfileInspectionModal({
                   </span>
                 </div>
                 <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-                  <span className="text-[9px] text-slate-500 uppercase font-bold block">Damage Per Miss</span>
-                  <span className="text-base font-black text-amber-400 mt-0.5 block">
-                    {villain.damagePerStrike} {villain.damagePerStrike === 1 ? 'Heart' : 'Hearts'}
+                  <span className="text-[9px] text-slate-500 uppercase font-bold block">Boss Strike</span>
+                  <span className="text-base font-black text-rose-400 mt-0.5 block">
+                    -20 HP
                   </span>
                 </div>
                 <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800">

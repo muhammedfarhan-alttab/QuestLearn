@@ -13,7 +13,8 @@ import {
   Sparkles,
   Lock,
   Unlock,
-  Swords
+  Swords,
+  FlaskConical
 } from 'lucide-react';
 
 export interface CourseData {
@@ -84,12 +85,16 @@ export default function CoursesView({
   unlockedCourses = {},
   onStartDiagnostic,
   onOpenWorldMap,
-  onLaunchStageTest
+  onLaunchStageTest,
+  onOpenLectureNotes,
+  onOpenLab
 }: {
   unlockedCourses?: Record<string, { diagnosticCompleted: boolean; mastery: number }>;
   onStartDiagnostic: (courseId: string) => void;
   onOpenWorldMap: (course: CourseData) => void;
   onLaunchStageTest?: (course: CourseData) => void;
+  onOpenLectureNotes?: (course: CourseData) => void;
+  onOpenLab?: (course: CourseData) => void;
 }) {
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
 
@@ -233,22 +238,44 @@ export default function CoursesView({
               {/* Action Buttons */}
               <div className="pt-2">
                 {isUnlocked ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => onOpenWorldMap(course)}
-                      className="px-3 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shadow-cyan-600/25 uppercase"
-                    >
-                      <Map className="w-3.5 h-3.5" />
-                      <span>Enter Roadmap</span>
-                    </button>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => onOpenWorldMap(course)}
+                        className="px-3 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shadow-cyan-600/25 uppercase"
+                      >
+                        <Map className="w-3.5 h-3.5" />
+                        <span>Enter Roadmap</span>
+                      </button>
 
-                    <button
-                      onClick={() => onStartDiagnostic(course.id)}
-                      className="px-3 py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                    >
-                      <Zap className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Recalibrate</span>
-                    </button>
+                      <button
+                        onClick={() => onStartDiagnostic(course.id)}
+                        className="px-3 py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Recalibrate</span>
+                      </button>
+                    </div>
+
+                    {onOpenLectureNotes && (
+                      <button
+                        onClick={() => onOpenLectureNotes(course)}
+                        className="w-full py-2 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Interactive Lecture Notes & AI</span>
+                      </button>
+                    )}
+
+                    {onOpenLab && (
+                      <button
+                        onClick={() => onOpenLab(course)}
+                        className="w-full py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-200 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <FlaskConical className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>🧪 Practical Simulation Labs</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <button

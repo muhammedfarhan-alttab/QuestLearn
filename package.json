@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test app/lib/battleEngine.test.ts app/lib/characterAnimations.test.ts app/lib/diagnosticEngine.test.ts app/lib/rpgEngine.test.ts app/lib/characterPricing.test.ts app/lib/questionVariety.test.ts app/lib/lectureEngine.test.ts app/lib/practicalModels.test.ts app/lib/courseHearts.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

@@ -15,6 +15,19 @@ export interface GenerateRoadmapRequest {
   answers?: StudentAnswerItem[];
 }
 
+export interface GeneratedWorldStageData {
+  stageNumber: number;
+  name: string;
+  conceptFocus: string;
+  realmLocation?: string;
+  kanji?: string;
+  lore?: string;
+  tier: 'easy' | 'intermediate' | 'hard';
+  isRemediation?: boolean;
+  targetedMisconception?: string;
+  aiRationale?: string;
+}
+
 export interface GenerateRoadmapResponse {
   strengths: string[];
   weaknesses: string[];
@@ -24,6 +37,7 @@ export interface GenerateRoadmapResponse {
   difficulty: string;
   estimatedStudyHours: number;
   bossBattles: string[];
+  worldStages?: GeneratedWorldStageData[];
   aiAnalysisSummary?: string;
 }
 

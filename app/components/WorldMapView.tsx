@@ -20,30 +20,26 @@ import {
   RotateCcw,
   BookOpen,
   ChevronLeft,
-  BrainCircuit
+  BrainCircuit,
+  FlaskConical,
+  Heart,
+  Target
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import {
+  getCourseStarHeartsSummary,
+  forgeCourseHeart,
+  refundCourseHeart,
+  CourseStarHeartsSummary
+} from '../lib/courseHeartsEngine';
 import { CourseData, ACADEMIC_COURSES } from './CoursesView';
 import LectureNotesModal from './LectureNotesModal';
+import InteractiveLabModal from './InteractiveLabModal';
 import { BleachVillainConfig } from './ProfileInspectionModal';
 import { getStageBoss } from '../data/bossesData';
+import { WorldStageNode, calculateSkillLevel, getSkillLevelMeta, SkillLevel } from '../lib/diagnosticEngine';
 
-export interface WorldStageNode {
-  id: number;
-  stageNumber: number;
-  name: string;
-  conceptFocus: string;
-  realmLocation: string;
-  kanji: string;
-  lore: string;
-  themeColor: string;
-  status: 'completed' | 'unlocked' | 'locked' | 'remediation_priority';
-  masteryPct: number;
-  stars: number;
-  isBoss: boolean;
-  bossName?: string;
-  bossId?: string;
-  tier: 'easy' | 'intermediate' | 'hard';
-}
+export type { WorldStageNode };
 
 export const DEFAULT_MAP_STAGES: WorldStageNode[] = [
   {
@@ -144,7 +140,14 @@ export default function WorldMapView({
   onClaimGeo,
   onInspectBoss,
   aiModelUsed,
-  aiRoadmapMeta
+  aiRoadmapMeta,
+  skillLevel,
+  scorePercentage,
+  onViewAiAnalysis,
+  onOpenInteractiveNotes,
+  onOpenLab,
+  onRewardXp,
+  onRewardGeo
 }: {
   course?: CourseData;
   isUnlocked?: boolean;
@@ -162,9 +165,17 @@ export default function WorldMapView({
     weakTopics?: string[];
     strongTopics?: string[];
   } | null;
+  skillLevel?: string;
+  scorePercentage?: number;
+  onViewAiAnalysis?: () => void;
+  onOpenInteractiveNotes?: (courseId: string, stageNumber: number) => void;
+  onOpenLab?: (courseId: string, stageNumber: number) => void;
+  onRewardXp?: (amount: number) => void;
+  onRewardGeo?: (amount: number) => void;
 }) {
   const [selectedStage, setSelectedStage] = useState<WorldStageNode>(stages[0]);
   const [isLectureModalOpen, setIsLectureModalOpen] = useState(false);
+  const [isLabModalOpen, setIsLabModalOpen] = useState(false);
 
   useEffect(() => {
     if (stages.length > 0) {
@@ -176,6 +187,38 @@ export default function WorldMapView({
 
   const completedStages = stages.filter(s => s.status === 'completed').length;
   const totalStars = stages.reduce((acc, s) => acc + s.stars, 0);
+
+  const effectiveScore = typeof scorePercentage === 'number'
+    ? scorePercentage
+    : (stages.length > 0 ? stages[0].masteryPct : 50);
+  const effectiveSkillLevel: SkillLevel = (skillLevel as SkillLevel) || calculateSkillLevel(Math.round((effectiveScore / 100) * 10));
+  const skillMeta = getSkillLevelMeta(effectiveSkillLevel);
+  const remediationStages = stages.filter(s => s.status === 'remediation_priority');
+
+  const [heartsSummary, setHeartsSummary] = useState<CourseStarHeartsSummary>(() =>
+    getCourseStarHeartsSummary(course.id, totalStars)
+  );
+
+  useEffect(() => {
+    setHeartsSummary(getCourseStarHeartsSummary(course.id, totalStars));
+  }, [course.id, totalStars]);
+
+  const handleForgeHeart = () => {
+    const res = forgeCourseHeart(course.id, totalStars);
+    if (res.success) {
+      setHeartsSummary(getCourseStarHeartsSummary(course.id, totalStars));
+      try {
+        confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+      } catch {}
+    }
+  };
+
+  const handleRefundHeart = () => {
+    const res = refundCourseHeart(course.id);
+    if (res.success) {
+      setHeartsSummary(getCourseStarHeartsSummary(course.id, totalStars));
+    }
+  };
 
   const getStatusBadge = (status: WorldStageNode['status']) => {
     switch (status) {
@@ -258,14 +301,23 @@ export default function WorldMapView({
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase flex items-center space-x-1">
+              <span className="px-2.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase flex items-center space-x-1 shadow-sm">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>AI Diagnostic Calibrated Path</span>
+                <span>AI-Calibrated World Map</span>
               </span>
+              <span className={`px-2.5 py-0.5 rounded text-[10px] ${skillMeta.badgeColor} border font-black uppercase flex items-center space-x-1 shadow-sm`}>
+                <span>{skillMeta.icon} Calibrated to {effectiveSkillLevel} Level ({effectiveScore}%)</span>
+              </span>
+              {remediationStages.length > 0 && (
+                <span className="px-2.5 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 font-black uppercase flex items-center space-x-1 shadow-sm animate-pulse">
+                  <Target className="w-3 h-3 text-rose-400" />
+                  <span>{remediationStages.length} AI Remediation Node{remediationStages.length > 1 ? 's' : ''}</span>
+                </span>
+              )}
               {aiModelUsed && (
                 <span className="px-2.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-black uppercase flex items-center space-x-1 shadow-sm">
                   <BrainCircuit className="w-3 h-3 text-indigo-400" />
-                  <span>Roadmap Engine: {aiModelUsed}</span>
+                  <span>Engine: {aiModelUsed}</span>
                 </span>
               )}
               <span className="text-slate-400 text-xs">•</span>
@@ -275,11 +327,20 @@ export default function WorldMapView({
               Personalized Campaign World Map
             </h1>
             <p className="text-xs text-slate-400 mt-1 max-w-xl">
-              This sequential realm roadmap was algorithmically generated based on your diagnostic results. Every stage test runs inside the interactive combat arena!
+              This sequential realm roadmap was dynamically generated by AI targeting your diagnosed concept gaps, evaluated skill level, and strengths.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {onViewAiAnalysis && (
+              <button
+                onClick={onViewAiAnalysis}
+                className="px-3.5 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+              >
+                <BrainCircuit className="w-3.5 h-3.5 text-indigo-400" />
+                <span>View AI Analysis</span>
+              </button>
+            )}
             <button
               onClick={() => onRetakeDiagnostic(course.id)}
               className="px-3.5 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
@@ -323,6 +384,63 @@ export default function WorldMapView({
               <span className="text-amber-400 font-bold">⚡ {aiRoadmapMeta.difficulty}</span>
             </div>
           )}
+        </div>
+
+        {/* Course Star-to-Heart Soul Ward Forge (Course-Isolated) */}
+        <div className="mt-5 pt-4 border-t border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-950/80 p-4 rounded-2xl border border-rose-500/30 shadow-lg">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2 text-xs font-bold text-amber-400">
+              <Heart className="w-4 h-4 text-rose-400 fill-rose-500" />
+              <span>{course.title} Soul Ward Forge</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase font-black">
+                Course Isolated
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              Forge <b className="text-amber-400">3 {course.title} Stars</b> into <b className="text-rose-400">1 Extra Heart</b> to absorb wrong answer penalties during difficult tests in this course!
+            </p>
+            <div className="flex items-center space-x-4 text-xs pt-1">
+              <span className="text-slate-300 font-bold">
+                ⭐ Available: <b className="text-amber-400">{heartsSummary.starsAvailable} Stars</b> ({heartsSummary.starsSpent} spent)
+              </span>
+              <span className="text-slate-500">•</span>
+              <span className="text-slate-300 font-bold flex items-center space-x-1.5">
+                <span>Extra Hearts:</span>
+                <span className="flex items-center space-x-1 text-sm text-rose-400">
+                  {Array.from({ length: heartsSummary.maxHearts }).map((_, i) => (
+                    <span key={i}>
+                      {i < heartsSummary.extraHearts ? '💖' : '🤍'}
+                    </span>
+                  ))}
+                </span>
+                <span className="text-slate-400">({heartsSummary.extraHearts}/{heartsSummary.maxHearts})</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2.5 shrink-0 flex-wrap">
+            <button
+              onClick={handleForgeHeart}
+              disabled={!heartsSummary.canForge}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 transition cursor-pointer ${
+                heartsSummary.canForge
+                  ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-slate-950 shadow-lg shadow-rose-500/25 active:scale-95'
+                  : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              <Heart className="w-3.5 h-3.5 fill-current" />
+              <span>Forge Extra Heart (3 ⭐)</span>
+            </button>
+            {heartsSummary.canReforge && (
+              <button
+                onClick={handleRefundHeart}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer"
+                title="Refund 1 Extra Heart back to 3 course stars"
+              >
+                <span>Reforge (Refund)</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -381,6 +499,18 @@ export default function WorldMapView({
                         <p className="text-[11px] text-slate-400 mt-0.5">
                           {stage.conceptFocus}
                         </p>
+                        {stage.status === 'remediation_priority' && (
+                          <div className="mt-1 flex items-center space-x-1 text-[9px] font-bold text-rose-400">
+                            <Target className="w-3 h-3 shrink-0 text-rose-400 animate-pulse" />
+                            <span>AI Remediation Focus: {stage.targetConcept || stage.conceptFocus}</span>
+                          </div>
+                        )}
+                        {effectiveSkillLevel === 'Advanced' && stage.stageNumber === 1 && (
+                          <div className="mt-1 flex items-center space-x-1 text-[9px] font-bold text-emerald-400">
+                            <Sparkles className="w-3 h-3 shrink-0 text-emerald-400" />
+                            <span>Accelerated Proving Ground (Foundations Fast-Tracked)</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -421,6 +551,19 @@ export default function WorldMapView({
               </div>
             </div>
 
+            {/* AI Pedagogical Calibration Rationale */}
+            {selectedStage.aiRationale && (
+              <div className="p-3.5 bg-indigo-950/50 rounded-xl border border-indigo-500/40 text-xs text-indigo-200 space-y-1 shadow-md">
+                <div className="flex items-center space-x-1.5 text-[10px] font-black text-indigo-300 uppercase tracking-wider">
+                  <BrainCircuit className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span>AI Pedagogical Diagnostic Rationale</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-300">
+                  {selectedStage.aiRationale}
+                </p>
+              </div>
+            )}
+
             {/* Flavor Lore */}
             <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800/90 text-xs text-slate-300 leading-relaxed italic">
               "{selectedStage.lore}"
@@ -451,6 +594,21 @@ export default function WorldMapView({
               <span>Study Lecture Notes & Concepts (+25 Geo)</span>
             </button>
 
+            {/* Launch Interactive Practical Simulation Lab */}
+            <button
+              onClick={() => {
+                if (onOpenLab) {
+                  onOpenLab(course.id, selectedStage.stageNumber);
+                } else {
+                  setIsLabModalOpen(true);
+                }
+              }}
+              className="w-full py-2.5 rounded-xl font-bold text-xs bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-200 flex items-center justify-center space-x-2 transition cursor-pointer shadow-md"
+            >
+              <FlaskConical className="w-4 h-4 text-emerald-400" />
+              <span>🧪 Interactive Practical Lab (+30 XP, +15 Geo)</span>
+            </button>
+
             {/* Inspect Stage Boss Profile Action */}
             <button
               onClick={() => onInspectBoss && onInspectBoss(getStageBoss(course.id, selectedStage.stageNumber))}
@@ -459,6 +617,24 @@ export default function WorldMapView({
               <Skull className="w-4 h-4 text-amber-400" />
               <span>Inspect Stage Boss & Weaknesses</span>
             </button>
+
+            {/* Course Soul Ward Protection Status for this Test */}
+            <div className="p-3 bg-slate-950 rounded-xl border border-rose-500/30 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2 text-slate-300">
+                <Heart className="w-4 h-4 text-rose-400 fill-rose-500" />
+                <span className="font-bold">Test Soul Wards:</span>
+              </div>
+              <div className="flex items-center space-x-1 font-black text-rose-300">
+                {heartsSummary.extraHearts > 0 ? (
+                  <>
+                    <span>{'💖'.repeat(heartsSummary.extraHearts)}</span>
+                    <span className="text-[11px] text-emerald-400">({heartsSummary.extraHearts} Protected Strike{heartsSummary.extraHearts > 1 ? 's' : ''})</span>
+                  </>
+                ) : (
+                  <span className="text-[11px] text-slate-500">0 Active (Forge above with 3 course stars!)</span>
+                )}
+              </div>
+            </div>
 
             {/* In-Course Test Launch Action (Launches into Combat Arena) */}
             <button
@@ -506,9 +682,24 @@ export default function WorldMapView({
         stage={selectedStage}
         diagnosedGaps={diagnosedGaps}
         onClaimGeo={(amt) => onClaimGeo && onClaimGeo(amt)}
+        onOpenInteractiveNotes={() => onOpenInteractiveNotes && onOpenInteractiveNotes(course.id, selectedStage.stageNumber)}
         onStartTest={() => {
           setIsLectureModalOpen(false);
           onLaunchStageTest(selectedStage);
+        }}
+      />
+
+      {/* Practical Simulation Lab Modal */}
+      <InteractiveLabModal
+        isOpen={isLabModalOpen}
+        onClose={() => setIsLabModalOpen(false)}
+        initialCourseId={course.id}
+        initialStageNumber={selectedStage.stageNumber}
+        onRewardXp={onRewardXp}
+        onRewardGeo={onRewardGeo}
+        onOpenLectureNotes={(cId, sNum) => {
+          setIsLabModalOpen(false);
+          if (onOpenInteractiveNotes) onOpenInteractiveNotes(cId, sNum);
         }}
       />
 

@@ -40,7 +40,7 @@ export const BLEACH_BOSS_CATALOG: Record<string, BleachVillainConfig> = {
     phase2TransformationName: 'HIGA ZEKKŌ AWAKENED',
     lore: 'Lieutenant of the 6th Division whose Zanpakuto extends into a jagged three-jointed whip blade capable of unpredictable long-range strikes and ground smashes.',
     conceptVulnerability: 'Vector Projections, Velocity Components & Chain Rule Slopes',
-    recommendedHeroCounter: 'Byakuya Kuchiki (+1 Heart Heal on streaks) or Renji Abarai',
+    recommendedHeroCounter: 'Byakuya Kuchiki (+10 HP Heal on streaks) or Renji Abarai',
     aspectOfDeath: 'Tenacity & Ambition',
     demigodFelledTitle: 'LIEUTENANT SURPASSED',
     bgType: 'seireitei'
@@ -106,7 +106,7 @@ export const BLEACH_BOSS_CATALOG: Record<string, BleachVillainConfig> = {
     phase2TransformationName: 'RESURRECCIÓN: SEGUNDA ETAPA',
     lore: 'The 4th Espada representing Emptiness. Uniquely possesses a secret second stage of release known as Segunda Etapa, wielding cataclysmic green lightning spears capable of destroying entire realms.',
     conceptVulnerability: 'Riemann Accumulation, Conservative Energy Wells & LC Circuit Oscillation',
-    recommendedHeroCounter: 'Kenpachi Zaraki (7 Hearts) or Yoruichi (40% Flash Evasion)',
+    recommendedHeroCounter: 'Kenpachi Zaraki (+40 DMG) or Yoruichi (40% Flash Evasion)',
     aspectOfDeath: 'Emptiness / Nothingness (Kyomu)',
     demigodFelledTitle: 'ESPADA DEFEATED',
     bgType: 'huecomundo'
@@ -128,7 +128,7 @@ export const BLEACH_BOSS_CATALOG: Record<string, BleachVillainConfig> = {
     phase2TransformationName: 'HŌGYOKU TRANSCENDENT APEX',
     lore: 'The architect of the war who evolved beyond the boundaries of Hollows and Shinigami. Bends space-time, infinite series, and sensory reality at will.',
     conceptVulnerability: 'Taylor Series Convergence, Differential Chain Extremas & Improper Integrals',
-    recommendedHeroCounter: 'Sosuke Aizen (Hypnosis Overdrive) or Genryūsai Yamamoto (8 Hearts Titan)',
+    recommendedHeroCounter: 'Sosuke Aizen (Hypnosis Overdrive) or Genryūsai Yamamoto (Solar Titan)',
     aspectOfDeath: 'Ascension & Transcendent Will',
     demigodFelledTitle: 'GOD OF THE HEAVENS OVERTHROWN',
     bgType: 'seireitei'
@@ -150,7 +150,7 @@ export const BLEACH_BOSS_CATALOG: Record<string, BleachVillainConfig> = {
     phase2TransformationName: 'ZANKA NO TACHI: FULL RELEASE',
     lore: 'The strongest Shinigami in a millennium. Wields the heat of the solar core. Every strike unleashes pure kinetic and thermal destruction.',
     conceptVulnerability: 'Rotational Angular Momentum, Work-Energy Conservation & Universal Gravitation',
-    recommendedHeroCounter: 'Kenpachi Zaraki (Colossal Hearts) or Yamamoto (Flame Sovereign)',
+    recommendedHeroCounter: 'Kenpachi Zaraki (Colossal Strength) or Yamamoto (Flame Sovereign)',
     aspectOfDeath: 'Absolute Oblivion & Judgement',
     demigodFelledTitle: 'SUPREME HEAD CAPTAIN BESTED',
     bgType: 'seireitei'
@@ -172,7 +172,7 @@ export const BLEACH_BOSS_CATALOG: Record<string, BleachVillainConfig> = {
     phase2TransformationName: 'THE ALMIGHTY AWAKENED',
     lore: 'The progenitor of the Quincy. Sees and rewrites all possible futures, wielding thunderous Reishi lightning and inescapable fate-altering attacks.',
     conceptVulnerability: 'Faraday-Lenz Induction, Gauss Electric Flux & Kirchhoff Loop Theorems',
-    recommendedHeroCounter: 'Genryūsai Yamamoto (8 Hearts) or Kisuke Urahara (35% Deflect)',
+    recommendedHeroCounter: 'Genryūsai Yamamoto (Solar Titan) or Kisuke Urahara (35% Deflect)',
     aspectOfDeath: 'The Beginning and the End',
     demigodFelledTitle: 'QUINCY KING VANQUISHED',
     bgType: 'wandenreich'

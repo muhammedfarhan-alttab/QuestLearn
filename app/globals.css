@@ -15,10 +15,18 @@
 }
 
 body {
-  background: var(--background);
+  background-color: #020617;
+  background-image: 
+    linear-gradient(rgba(2, 6, 23, 0.82), rgba(3, 7, 18, 0.88)),
+    url('/bg-main.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--foreground);
   font-family: 'Silkscreen', 'Press Start 2P', monospace;
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
 /* Pixel Art crisp rendering */
@@ -149,5 +157,192 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.4);
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 0, 0, 0.6);
 }
+
+/* ============================================================= */
+/* CHARACTER ANIMATION SYSTEM (Lightweight GPU-Accelerated CSS)   */
+/* ============================================================= */
+
+/* 1. IDLE: Breathing animation (looping rise/fall chest rhythm) */
+@keyframes heroBreathing {
+  0%, 100% {
+    transform: scaleY(1) scaleX(1) translateY(0);
+  }
+  50% {
+    transform: scaleY(1.045) scaleX(0.985) translateY(-3px);
+  }
+}
+
+.anim-breathing {
+  animation: heroBreathing 2.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* 2. CORRECT ANSWER: Celebration animation (joyful bounce & fist pump) */
+@keyframes heroCelebration {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+  25% {
+    transform: translateY(-28px) scale(1.18) rotate(-10deg);
+    filter: brightness(1.5) drop-shadow(0 0 14px #34d399);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.02) rotate(10deg);
+    filter: brightness(1.2);
+  }
+  75% {
+    transform: translateY(-20px) scale(1.1) rotate(-5deg);
+    filter: brightness(1.3);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+.anim-celebration {
+  animation: heroCelebration 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: bottom center;
+}
+
+/* 3. WRONG ANSWER: Hurt animation (recoil/stagger backwards with red flash) */
+@keyframes heroHurt {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+    filter: brightness(1);
+    opacity: 1;
+  }
+  15% {
+    transform: translate(-22px, 6px) rotate(-14deg);
+    filter: brightness(2.8) drop-shadow(0 0 18px #ef4444);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translate(18px, -3px) rotate(10deg);
+    filter: brightness(2) drop-shadow(0 0 12px #ef4444);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(-14px, 3px) rotate(-6deg);
+    filter: brightness(1.5);
+    opacity: 0.45;
+  }
+  70% {
+    transform: translate(10px, -1px) rotate(4deg);
+    filter: brightness(1.2);
+    opacity: 1;
+  }
+}
+
+.anim-hurt {
+  animation: heroHurt 0.55s ease-in-out;
+  transform-origin: bottom center;
+}
+
+/* 4. BOSS BATTLE: Attack animation (forward dash lunge & blade slash) */
+@keyframes heroAttack {
+  0% {
+    transform: translateX(0) translateY(0) rotate(0deg) scale(1);
+    filter: brightness(1);
+  }
+  20% {
+    transform: translateX(60px) translateY(-20px) rotate(-25deg) scale(1.15);
+    filter: brightness(1.6);
+  }
+  50% {
+    transform: translateX(160px) translateY(6px) rotate(35deg) scale(1.28);
+    filter: brightness(2.2) drop-shadow(0 0 16px #38bdf8);
+  }
+  70% {
+    transform: translateX(200px) translateY(2px) rotate(-12deg) scale(1.18);
+    filter: brightness(1.8);
+  }
+  100% {
+    transform: translateX(0) translateY(0) rotate(0deg) scale(1);
+    filter: brightness(1);
+  }
+}
+
+.anim-attack {
+  animation: heroAttack 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: bottom center;
+}
+
+/* 5. VICTORY: Dance animation (looping celebratory groove and bounce) */
+@keyframes heroDance {
+  0%, 100% {
+    transform: translateY(0) translateX(0) rotate(0deg) scaleY(1) scaleX(1);
+  }
+  16% {
+    transform: translateY(-16px) translateX(-12px) rotate(-12deg) scaleY(1.12) scaleX(0.94);
+  }
+  33% {
+    transform: translateY(0) translateX(0) rotate(0deg) scaleY(0.94) scaleX(1.06);
+  }
+  50% {
+    transform: translateY(-16px) translateX(12px) rotate(12deg) scaleY(1.12) scaleX(0.94);
+  }
+  66% {
+    transform: translateY(0) translateX(0) rotate(0deg) scaleY(0.94) scaleX(1.06);
+  }
+  83% {
+    transform: translateY(-12px) translateX(-6px) rotate(-6deg) scaleY(1.06) scaleX(0.97);
+  }
+}
+
+.anim-dance {
+  animation: heroDance 1.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* 6. DEFEAT: Knockout animation (collapse backwards to ground at -90deg) */
+@keyframes heroKnockout {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1) grayscale(0%);
+  }
+  20% {
+    transform: translateY(-10px) translateX(-12px) rotate(-22deg);
+    opacity: 0.95;
+    filter: brightness(1.5) grayscale(20%);
+  }
+  45% {
+    transform: translateY(16px) translateX(-26px) rotate(-60deg);
+    opacity: 0.85;
+    filter: brightness(1.2) grayscale(50%);
+  }
+  75% {
+    transform: translateY(32px) translateX(-38px) rotate(-88deg);
+    opacity: 0.65;
+    filter: brightness(0.75) grayscale(85%);
+  }
+  100% {
+    transform: translateY(34px) translateX(-38px) rotate(-90deg);
+    opacity: 0.65;
+    filter: brightness(0.75) grayscale(85%);
+  }
+}
+
+.anim-knockout {
+  animation: heroKnockout 0.85s ease-in-out forwards;
+  transform-origin: bottom left;
+}
+
+/* Floating dizzy star spin */
+@keyframes dizzyOrbit {
+  0% {
+    transform: rotate(0deg) translateX(14px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(14px) rotate(-360deg);
+  }
+}
+
+.anim-dizzy {
+  animation: dizzyOrbit 1.8s linear infinite;
+}
+
 
 

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { 
   Coins, 
-  Heart, 
+  Activity, 
   Shield, 
   Zap, 
   Swords, 
@@ -20,8 +20,22 @@ import {
   Info,
   X,
   ChevronRight,
-  UserCheck
+  UserCheck,
+  Crown,
+  Heart
 } from 'lucide-react';
+import CharacterClassView from './CharacterClassView';
+import { CharacterClassId, CHARACTER_CLASSES } from '../data/characterClassesData';
+import { CharacterClassLevelsMap, DEFAULT_CLASS_LEVELS } from '../lib/characterClassStorage';
+import { 
+  CharacterAnimationState, 
+  CHARACTER_ANIMATIONS, 
+  resolveAnimationState, 
+  getHeroMotionAnimate, 
+  getHeroMotionTransition,
+  getHeroUniqueMotion,
+  getHeroUniqueTransition
+} from '../lib/characterAnimations';
 
 export type BleachHeroId = 
   | 'ichigo' 
@@ -37,6 +51,13 @@ export type BleachHeroId =
   | 'shunsui'
   | 'yamamoto';
 
+import { 
+  CLAN_METADATA, 
+  CHARACTER_CLAN_MAP, 
+  CHARACTER_POWER_RATINGS, 
+  calculateCharacterPrice 
+} from '../lib/characterPricing';
+
 export interface BleachAttributes {
   reiatsu: number;   // Spiritual Pressure
   zanjutsu: number;  // Swordsmanship
@@ -49,6 +70,8 @@ export interface BleachHeroConfig {
   id: BleachHeroId;
   name: string;
   title: string;
+  clanId: CharacterClassId;
+  powerRating: number;
   division: string;
   zanpakuto: string;
   releaseCommand: string;
@@ -63,7 +86,7 @@ export interface BleachHeroConfig {
   themeGradient: string;
   passiveName: string;
   passiveDesc: string;
-  baseHearts: number;
+  baseHp: number;
   bonusGeoMultiplier: number;
   damageBonus: number;
   tag: string;
@@ -86,6 +109,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'ichigo',
     name: 'Ichigo Kurosaki',
     title: 'The Substitute Shinigami',
+    clanId: 'warrior',
+    powerRating: 500,
     division: 'Karakura Town Guardian // Vizard',
     zanpakuto: 'Tensa Zangetsu',
     releaseCommand: '“Bankai! Tensa Zangetsu!”',
@@ -100,13 +125,13 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     themeGradient: 'from-orange-500 to-red-600',
     passiveName: 'Hollowfied Speed',
     passiveDesc: 'Builds stance momentum rapidly on hit streaks, unleashing Getsuga Tensho blade waves.',
-    baseHearts: 5,
+    baseHp: 10,
     bonusGeoMultiplier: 1.0,
     damageBonus: 0,
-    tag: 'STARTER // BALANCED STRIKER',
+    tag: 'STARTER // WARRIOR CLAN',
     enduranceTier: 'Balanced',
     enduranceHighlights: [
-      '5 Base Hearts for standard exam survivability',
+      '10 Hearts Vitality Pool for standard exam survivability',
       'Rapid recovery between combo attacks',
       'Solid all-rounder for early stage tests'
     ]
@@ -115,6 +140,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'rukia',
     name: 'Rukia Kuchiki',
     title: '13th Division Lieutenant // Maiden of Absolute Zero',
+    clanId: 'mage',
+    powerRating: 540,
     division: 'Gotei 13 - 13th Division Lieutenant',
     zanpakuto: 'Sode no Shirayuki',
     releaseCommand: '“Dance, Sode no Shirayuki!”',
@@ -129,10 +156,10 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     themeGradient: 'from-cyan-400 to-blue-600',
     passiveName: 'Hakuren Frost Shield',
     passiveDesc: 'Absolute zero ice armor reduces all incoming heavy boss strikes by 50%.',
-    baseHearts: 5,
+    baseHp: 10,
     bonusGeoMultiplier: 1.1,
     damageBonus: 15,
-    tag: 'FROST SHIELD // 50% DAMAGE CUT',
+    tag: 'FROST SHIELD // MAGE CLAN',
     enduranceTier: 'High Defense',
     enduranceHighlights: [
       '50% Damage Reduction against Phase-2 Boss Ultimate Attacks',
@@ -144,6 +171,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'kenpachi',
     name: 'Kenpachi Zaraki',
     title: '11th Division Captain // The Unstoppable Demon',
+    clanId: 'warrior',
+    powerRating: 720,
     division: 'Gotei 13 - 11th Division Captain',
     zanpakuto: 'Nozarashi',
     releaseCommand: '“Drink, Nozarashi!”',
@@ -153,18 +182,18 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Ryodan (Two-Handed Cleave)',
     techniqueDesc: 'Grips Nozarashi with both hands and delivers a skull-shattering vertical cleave that splits anything in its path.',
     attributes: { reiatsu: 100, zanjutsu: 98, hakuda: 92, hoho: 60, kido: 0 },
-    geoCost: 150,
+    geoCost: 370,
     accentColor: '#84cc16',
     themeGradient: 'from-lime-500 to-yellow-600',
     passiveName: 'Unstoppable Reiatsu',
-    passiveDesc: 'Starts with 7 Maximum Hearts and deals massive +40 Base Damage on every attack.',
-    baseHearts: 7,
+    passiveDesc: 'Commands 10 Hearts Vitality Pool and deals massive +40 Base Damage on every attack.',
+    baseHp: 10,
     bonusGeoMultiplier: 1.15,
     damageBonus: 40,
-    tag: 'COLOSSAL STR // 7 HEARTS',
+    tag: 'COLOSSAL STR // WARRIOR CLAN',
     enduranceTier: 'Colossal Vitality',
     enduranceHighlights: [
-      '7 Base Hearts — Highest starting health pool in the game',
+      '10 Hearts Vitality Pool with fortified resilience',
       '+40 Base Damage shatters enemy HP bars quickly',
       'Survives repeated errors on difficult tests without failing'
     ]
@@ -173,6 +202,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'byakuya',
     name: 'Byakuya Kuchiki',
     title: '6th Division Captain // Noble Blade of Sakura',
+    clanId: 'guardian',
+    powerRating: 740,
     division: 'Gotei 13 - 6th Division Captain & 28th Kuchiki Head',
     zanpakuto: 'Senbonzakura',
     releaseCommand: '“Scatter, Senbonzakura.”',
@@ -182,18 +213,18 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Senbonzakura Kageyoshi (Goukei & Senkei)',
     techniqueDesc: 'Surrounds the target in a sphere of millions of floating glowing razor petals, striking from every angle simultaneously.',
     attributes: { reiatsu: 90, zanjutsu: 96, hakuda: 70, hoho: 94, kido: 90 },
-    geoCost: 300,
+    geoCost: 410,
     accentColor: '#f472b6',
     themeGradient: 'from-pink-400 to-rose-600',
     passiveName: 'Petal Aegis Barrier',
-    passiveDesc: 'Recovers +1 Heart on every 2-answer streak and slashes enemies with cherry blossom petal tempests.',
-    baseHearts: 5,
+    passiveDesc: 'Recovers +1 Heart on correct answers and slashes enemies with cherry blossom petal tempests.',
+    baseHp: 10,
     bonusGeoMultiplier: 1.3,
     damageBonus: 22,
-    tag: 'HEALING REGEN // PETAL STORM',
+    tag: 'RAZOR AEGIS // GUARDIAN CLAN',
     enduranceTier: 'Health Regeneration',
     enduranceHighlights: [
-      'Regenerates +1 Heart every 2 consecutive correct answers',
+      'Regenerates +1 Heart on correct answers for steady sustain',
       'Enables infinite sustain across long 4-5 question subtopic tests',
       'Petal Aegis parries incidental damage'
     ]
@@ -202,6 +233,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'urahara',
     name: 'Kisuke Urahara',
     title: 'Former 12th Division Captain // SRDI Founder',
+    clanId: 'mage',
+    powerRating: 820,
     division: 'Shopkeeper of Karakura // Former 12th Captain',
     zanpakuto: 'Benihime (Crimson Princess)',
     releaseCommand: '“Awaken, Benihime!”',
@@ -211,15 +244,15 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Chikasumi no Tate & Kamisori (Crimson Mist)',
     techniqueDesc: 'Deploys an impenetrable blood-mist hexagonal shield while firing razor arcs of crimson spiritual energy.',
     attributes: { reiatsu: 92, zanjutsu: 90, hakuda: 85, hoho: 92, kido: 100 },
-    geoCost: 450,
+    geoCost: 540,
     accentColor: '#10b981',
     themeGradient: 'from-emerald-400 to-teal-600',
     passiveName: 'SRDI Inventions & Wealth',
     passiveDesc: 'Earns +75% Bonus Geo on every question and has a 35% tactical chance to parry away boss damage.',
-    baseHearts: 5,
+    baseHp: 10,
     bonusGeoMultiplier: 1.75,
     damageBonus: 25,
-    tag: 'GENIUS TACTICIAN // GEO HOARDER',
+    tag: 'GENIUS TACTICIAN // MAGE CLAN',
     enduranceTier: 'Tactical Deflection',
     enduranceHighlights: [
       '35% Chance to completely parry boss counter-attacks via Blood Mist Shield',
@@ -231,6 +264,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'aizen',
     name: 'Sosuke Aizen',
     title: 'Lord of Las Noches // Master of Kyoka Suigetsu',
+    clanId: 'immortal',
+    powerRating: 950,
     division: 'Former 5th Division Captain // Ruler of Hueco Mundo',
     zanpakuto: 'Kyoka Suigetsu',
     releaseCommand: '“Shatter, Kyoka Suigetsu.”',
@@ -240,18 +275,18 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Kanzen Saimin & Hado #90: Kurohitsugi',
     techniqueDesc: 'Shatters reality into glass shards, encasing the enemy within a towering black sarcophagus of gravitational torment.',
     attributes: { reiatsu: 100, zanjutsu: 95, hakuda: 90, hoho: 95, kido: 100 },
-    geoCost: 600,
+    geoCost: 780,
     accentColor: '#a855f7',
     themeGradient: 'from-purple-500 to-indigo-700',
     passiveName: 'Complete Hypnosis',
     passiveDesc: 'Deals +45 Base Damage and requires only 2 hits to trigger maximum Overdrive stance.',
-    baseHearts: 6,
+    baseHp: 10,
     bonusGeoMultiplier: 1.4,
     damageBonus: 45,
-    tag: 'GODLIKE REIATSU // HYPNOSIS',
+    tag: 'TRANSCENDENT // IMMORTAL CLAN',
     enduranceTier: 'Supreme Barrier',
     enduranceHighlights: [
-      '6 Base Hearts with Hōgyoku immortality regeneration',
+      '10 Hearts Vitality with Hōgyoku immortality regeneration',
       'Distorts reality so deadly Phase-2 boss moves miss completely',
       'Maximum stance reached in only 2 hits (+45 Base DMG)'
     ]
@@ -260,6 +295,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'toshiro',
     name: 'Tōshirō Hitsugaya',
     title: '10th Division Captain // Dragon of Ice',
+    clanId: 'mage',
+    powerRating: 680,
     division: 'Gotei 13 - 10th Division Captain',
     zanpakuto: 'Hyōrinmaru',
     releaseCommand: '“Sit Upon the Frosted Heavens, Hyōrinmaru!”',
@@ -269,18 +306,18 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Ryūsenka & Sennen Hyōrō (Thousand-Year Ice Prison)',
     techniqueDesc: 'Pillars of ice encircle and crush the opponent, followed by an explosion of razor ice petals.',
     attributes: { reiatsu: 92, zanjutsu: 89, hakuda: 70, hoho: 91, kido: 88 },
-    geoCost: 220,
+    geoCost: 310,
     accentColor: '#06b6d4',
     themeGradient: 'from-cyan-500 to-teal-600',
     passiveName: 'Hyōrinmaru Glacial Stun',
     passiveDesc: 'Every 3 answer streak flash-freezes the boss for 1 turn and deals +25 Ice Shatter damage.',
-    baseHearts: 6,
+    baseHp: 10,
     bonusGeoMultiplier: 1.2,
     damageBonus: 25,
-    tag: 'FROST STUN // FREEZE TURNS',
+    tag: 'FROST STUN // MAGE CLAN',
     enduranceTier: 'Glacial Freeze',
     enduranceHighlights: [
-      '6 Base Hearts for formidable endurance against long tests',
+      '10 Hearts Vitality for formidable endurance against long tests',
       'Flash-freezes high-damage bosses, canceling their counter-attacks on 3-streaks',
       'Ideal for intricate Multi-step Calculus & Algorithms tests'
     ]
@@ -289,6 +326,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'ulquiorra_hero',
     name: 'Ulquiorra Cifer (Resurrección)',
     title: 'Cuarta Espada (#4) // Demon of Emptiness',
+    clanId: 'healer',
+    powerRating: 760,
     division: 'Espada #4 (Awakened Ally)',
     zanpakuto: 'Murciélago',
     releaseCommand: '“Enclose, Murciélago!”',
@@ -298,19 +337,19 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Lanza del Relámpago (Spear of Lightning)',
     techniqueDesc: 'Forges a spear of crackling emerald lightning that creates a nuclear-scale explosion upon impact.',
     attributes: { reiatsu: 96, zanjutsu: 91, hakuda: 85, hoho: 94, kido: 90 },
-    geoCost: 360,
+    geoCost: 440,
     accentColor: '#10b981',
     themeGradient: 'from-emerald-500 to-green-700',
     passiveName: 'High-Speed Regeneration',
-    passiveDesc: 'Restores +1 Heart on every 2 correct answers, and fatal boss attacks are capped to leave 1 heart standing.',
-    baseHearts: 6,
+    passiveDesc: 'Restores +1 Heart on correct answers, and fatal boss attacks are capped to leave 1 Heart standing.',
+    baseHp: 10,
     bonusGeoMultiplier: 1.25,
     damageBonus: 30,
-    tag: 'RAPID REGEN // DEATH DEFIANCE',
+    tag: 'RAPID REGEN // HEALER CLAN',
     enduranceTier: 'Health Regeneration',
     enduranceHighlights: [
-      'Restores +1 Heart continuously every 2 correct answers',
-      'Fatal strike protection: boss ultimate cannot drop you below 1 heart once per stage',
+      'Restores +1 Heart continuously on correct answers',
+      'Fatal strike protection: boss ultimate cannot drop you below 1 Heart once per stage',
       'Supreme pick for enduring Tier 4 & 5 hardest academic tests'
     ]
   },
@@ -318,6 +357,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'yoruichi',
     name: 'Yoruichi Shihōin',
     title: 'Flash Goddess // Former Onmitsukidō Commander',
+    clanId: 'warrior',
+    powerRating: 780,
     division: 'Former 2nd Division Captain & Shihōin Clan Head',
     zanpakuto: 'Shunkō (Hand-to-Hand Raijin)',
     releaseCommand: '“Shunkō: Raijin Senkei!”',
@@ -327,15 +368,15 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Shunkō: Raiju Senkei (Lightning Beast)',
     techniqueDesc: 'Channels 48 pulses of volatile lightning per second, shredding the opponent with supersonic thunder strikes.',
     attributes: { reiatsu: 94, zanjutsu: 78, hakuda: 100, hoho: 100, kido: 92 },
-    geoCost: 340,
+    geoCost: 470,
     accentColor: '#f59e0b',
     themeGradient: 'from-amber-400 to-yellow-600',
     passiveName: 'Flash Mirage & Super Geo',
     passiveDesc: '40% chance to completely dodge boss damage on mistakes, plus +100% Geo rewards (2.0x multiplier)!',
-    baseHearts: 5,
+    baseHp: 10,
     bonusGeoMultiplier: 2.0,
     damageBonus: 20,
-    tag: '40% DODGE // 2.0X GEO FARM',
+    tag: 'FLASH EVASION // WARRIOR CLAN',
     enduranceTier: 'Flash Evasion',
     enduranceHighlights: [
       '40% chance that an incorrect answer deals 0 damage due to Flash Mirage',
@@ -347,6 +388,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'renji',
     name: 'Renji Abarai',
     title: '6th Division Lieutenant // Howl of Zabimaru',
+    clanId: 'guardian',
+    powerRating: 580,
     division: 'Gotei 13 - 6th Division Lieutenant',
     zanpakuto: 'Zabimaru',
     releaseCommand: '“Howl, Zabimaru!”',
@@ -356,18 +399,18 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Zaga Teppō (Snake Fang Iron Cannon)',
     techniqueDesc: 'Unleashes an incinerating blast of spiritual flames from the gaping jaws of the giant skeletal snake head.',
     attributes: { reiatsu: 89, zanjutsu: 88, hakuda: 84, hoho: 82, kido: 50 },
-    geoCost: 180,
+    geoCost: 170,
     accentColor: '#ef4444',
     themeGradient: 'from-red-500 to-rose-700',
     passiveName: 'Zabimaru Iron Fang',
     passiveDesc: 'Heavy armor reduces all incoming attacks by 25%, and streak answers gain +30 bonus damage.',
-    baseHearts: 6,
+    baseHp: 10,
     bonusGeoMultiplier: 1.15,
     damageBonus: 30,
-    tag: 'HEAVY ARMOR // STAGGER CLEAVE',
+    tag: 'HEAVY ARMOR // GUARDIAN CLAN',
     enduranceTier: 'High Defense',
     enduranceHighlights: [
-      '6 Sturdy Hearts with permanent 25% damage mitigation',
+      'Sturdy Vitality with permanent 25% damage mitigation',
       'High bonus damage (+30 DMG) to finish tests in fewer questions',
       'Great affordable brawler for middle tier stages'
     ]
@@ -376,6 +419,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'shunsui',
     name: 'Shunsui Kyōraku',
     title: 'Captain-Commander // Master of Shadow Games',
+    clanId: 'warrior',
+    powerRating: 850,
     division: 'Gotei 13 - Captain-Commander (Head of Gotei 13)',
     zanpakuto: 'Katen Kyōkotsu',
     releaseCommand: '“Flower Wind Rages and Flower God Weeps, Heavenly Wind Rages and Underworld Demon Sneers!”',
@@ -385,18 +430,18 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Kageoni & Bushōgoma (Shadow Demon Whirlwind)',
     techniqueDesc: 'Stabs into shadows to emerge directly behind the opponent’s blind spot with lethal dual-blade cuts.',
     attributes: { reiatsu: 97, zanjutsu: 96, hakuda: 86, hoho: 94, kido: 90 },
-    geoCost: 460,
+    geoCost: 590,
     accentColor: '#ec4899',
     themeGradient: 'from-pink-500 to-rose-700',
     passiveName: 'Kageoni Shadow Dance',
     passiveDesc: 'Slips into the shadows after taking damage, reducing the next 2 hits by 60% and granting +40 critical damage.',
-    baseHearts: 6,
+    baseHp: 10,
     bonusGeoMultiplier: 1.35,
     damageBonus: 40,
-    tag: 'SHADOW SLIP // 60% ABSORB',
+    tag: 'SHADOW SLIP // WARRIOR CLAN',
     enduranceTier: 'Shadow Absorption',
     enduranceHighlights: [
-      '6 Base Hearts with tactical game mechanics',
+      'Tactical shadow slip survivability mechanics',
       'Takes 60% reduced damage after taking a hit (slip into shadows)',
       'Massive +40 Base Damage for punishing boss counter-offensives'
     ]
@@ -405,6 +450,8 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     id: 'yamamoto',
     name: 'Genryūsai Shigekuni Yamamoto',
     title: 'Founder of the Gotei 13 // The Living Sun',
+    clanId: 'immortal',
+    powerRating: 990,
     division: 'Former Captain-Commander of Gotei 13',
     zanpakuto: 'Ryūjin Jakka',
     releaseCommand: '“All Things in the Universe, Turn to Ashes! Ryūjin Jakka!”',
@@ -414,19 +461,19 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
     technique: 'Zanka no Tachi, Minami: Jūka Jinshī (Ten Trillion Flame Dead)',
     techniqueDesc: 'Calls forth the skeletal ashes of tens of trillions slain by his flames, marching as an invincible infernal legion.',
     attributes: { reiatsu: 100, zanjutsu: 100, hakuda: 98, hoho: 90, kido: 98 },
-    geoCost: 750,
+    geoCost: 850,
     accentColor: '#ea580c',
     themeGradient: 'from-orange-600 via-red-600 to-amber-500',
     passiveName: 'Zanka no Tachi Sun Cloak',
-    passiveDesc: 'Starts with colossal 8 Hearts, immune to 1-heart scratch attacks, and burns the boss for 20 passive damage each turn!',
-    baseHearts: 8,
+    passiveDesc: 'Commands supreme 10 Hearts Vitality, immune to minor scratch attacks, and burns the boss for 20 passive damage each turn!',
+    baseHp: 10,
     bonusGeoMultiplier: 1.5,
     damageBonus: 55,
-    tag: '8 HEARTS // SUPREME TITAN',
+    tag: 'SUPREME TITAN // IMMORTAL CLAN',
     enduranceTier: 'Flame Sovereign',
     enduranceHighlights: [
-      'Colossal 8 Maximum Hearts — the absolute highest vitality in the game',
-      'Scratch immunity: 1-heart strikes are completely nullified by the 15,000,000°C solar cloak',
+      'Supreme 10 Hearts Vitality with solar aura defense',
+      'Scratch immunity: minor strikes are completely nullified by the 15,000,000°C solar cloak',
       'Deals 20 passive burn damage to bosses on every single turn automatically',
       'The ultimate choice for clearing Stage 5 Boss Exams with 3 Stars'
     ]
@@ -436,43 +483,26 @@ export const BLEACH_ROSTER: Record<BleachHeroId, BleachHeroConfig> = {
 // -------------------------------------------------------------
 // Pixel-Art Bleach Hero Sprite Component (All 6 Characters)
 // -------------------------------------------------------------
-export function BleachPixelSprite({
-  heroId,
-  animState = 'idle',
-  isHurt = false
-}: {
-  heroId: BleachHeroId;
-  animState?: string;
-  isHurt?: boolean;
-}) {
-  // ICHIGO KUROSAKI
-  if (heroId === 'ichigo') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-          className="absolute -inset-6 rounded-full bg-gradient-to-tr from-black via-red-600/30 to-orange-500/20 blur-xl pointer-events-none"
-        />
+const HERO_AURA_MAP: Record<BleachHeroId, string> = {
+  ichigo: 'bg-gradient-to-tr from-black via-red-600/30 to-orange-500/20',
+  rukia: 'bg-cyan-400/25',
+  kenpachi: 'bg-lime-500/25',
+  byakuya: 'bg-pink-500/25',
+  urahara: 'bg-emerald-500/25',
+  aizen: 'bg-purple-600/25',
+  toshiro: 'bg-cyan-400/30',
+  ulquiorra_hero: 'bg-emerald-500/25',
+  yoruichi: 'bg-amber-400/30',
+  renji: 'bg-red-600/25',
+  shunsui: 'bg-pink-500/25',
+  yamamoto: 'bg-orange-600/35'
+};
 
-        <motion.svg
-          width={92}
-          height={110}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1], filter: ['brightness(1)', 'brightness(3)', 'brightness(1)'] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 130, 190, 0], y: [0, -15, 5, 0], rotate: [0, -25, 35, 0] }
-              : animState === 'ash_of_war'
-              ? { x: [0, 160, 220, 0], y: [0, -25, 0, 0], scale: [1, 1.3, 1], filter: ['brightness(1)', 'brightness(2.5)', 'brightness(1)'] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.8 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+function renderHeroSvg(heroId: BleachHeroId) {
+  switch (heroId) {
+    case 'ichigo':
+      return (
+        <svg width={92} height={110} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Spiky Orange Hair */}
           <polygon points="12,1 8,6 16,6" fill="#f97316" />
           <polygon points="6,2 4,8 10,7" fill="#ea580c" />
@@ -508,37 +538,12 @@ export function BleachPixelSprite({
           <rect x="13" y="21" width="3" height="6" fill="#f8fafc" />
           <rect x="8" y="26" width="3.5" height="1.5" fill="#020617" />
           <rect x="13" y="26" width="3.5" height="1.5" fill="#020617" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // RUKIA KUCHIKI
-  if (heroId === 'rukia') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-          className="absolute -inset-6 rounded-full bg-cyan-400/25 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={88}
-          height={106}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 125, 185, 0], y: [0, -15, 0, 0], rotate: [0, -15, 25, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.9 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'rukia':
+      return (
+        <svg width={88} height={106} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Black Bob Hair with Central Strand */}
           <polygon points="12,2 7,7 17,7" fill="#090d16" />
           <rect x="6" y="5" width="12" height="6" fill="#090d16" rx="2" />
@@ -557,7 +562,6 @@ export function BleachPixelSprite({
           {/* Sode no Shirayuki (Pure White Zanpakuto with Ribbon) */}
           <rect x="19" y="4" width="1.5" height="20" fill="#f8fafc" />
           <circle cx="19.75" cy="14" r="1.5" fill="#e0f2fe" />
-          {/* Flowing White Ribbon */}
           <path d="M 19 23 Q 22 25 21 28" stroke="#f8fafc" strokeWidth="1" fill="none" />
 
           {/* Ice Aura Particle Spangles */}
@@ -567,37 +571,12 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="21" width="3" height="6" fill="#f8fafc" />
           <rect x="13" y="21" width="3" height="6" fill="#f8fafc" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // KENPACHI ZARAKI
-  if (heroId === 'kenpachi') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          className="absolute -inset-6 rounded-full bg-lime-500/25 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={96}
-          height={114}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -3, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 135, 195, 0], y: [0, -20, 5, 0], rotate: [0, -20, 30, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.8 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'kenpachi':
+      return (
+        <svg width={96} height={114} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Spiky Bell Hair */}
           <polygon points="12,0 10,6 14,6" fill="#090d16" />
           <circle cx="12" cy="0" r="1" fill="#facc15" />
@@ -627,37 +606,12 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="21" width="3" height="6" fill="#020617" />
           <rect x="13" y="21" width="3" height="6" fill="#020617" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // BYAKUYA KUCHIKI
-  if (heroId === 'byakuya') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-          className="absolute -inset-6 rounded-full bg-pink-500/25 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={90}
-          height={108}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 130, 190, 0], y: [0, -15, 0, 0], rotate: [0, -15, 25, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 2 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'byakuya':
+      return (
+        <svg width={90} height={108} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Black Hair & Kenseikan */}
           <rect x="7" y="3" width="10" height="7" fill="#090d16" rx="1" />
           <rect x="6" y="2" width="2" height="4" fill="#f8fafc" />
@@ -685,37 +639,12 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="21" width="3" height="6" fill="#020617" />
           <rect x="13" y="21" width="3" height="6" fill="#020617" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // KISUKE URAHARA
-  if (heroId === 'urahara') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.8, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-          className="absolute -inset-6 rounded-full bg-emerald-500/25 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={90}
-          height={108}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 120, 180, 0], y: [0, -20, 0, 0], rotate: [0, -20, 30, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.8 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'urahara':
+      return (
+        <svg width={90} height={108} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Bucket Hat */}
           <polygon points="12,1 3,6 21,6" fill="#15803d" />
           <rect x="6" y="5" width="12" height="3" fill="#15803d" />
@@ -741,38 +670,12 @@ export function BleachPixelSprite({
           {/* Clogs */}
           <rect x="7" y="22" width="4" height="4" fill="#92400e" />
           <rect x="13" y="22" width="4" height="4" fill="#92400e" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // SOSUKE AIZEN
-  // SOSUKE AIZEN
-  if (heroId === 'aizen') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-          className="absolute -inset-6 rounded-full bg-purple-600/25 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={92}
-          height={110}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.04, 1], y: [0, -3, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 140, 205, 0], y: [0, -25, 5, 0], rotate: [0, -30, 40, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.8 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'aizen':
+      return (
+        <svg width={92} height={110} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Slicked Back Hair & Strand */}
           <polygon points="12,1 6,6 18,6" fill="#78350f" />
           <rect x="7" y="3" width="10" height="5" fill="#78350f" rx="1" />
@@ -801,37 +704,12 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="21" width="3" height="6" fill="#020617" />
           <rect x="13" y="21" width="3" height="6" fill="#020617" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // TOSHIRO HITSUGAYA
-  if (heroId === 'toshiro') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.06, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.6 }}
-          className="absolute -inset-6 rounded-full bg-cyan-400/30 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={88}
-          height={104}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 130, 190, 0], y: [0, -18, 5, 0], rotate: [0, -20, 30, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.7 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'toshiro':
+      return (
+        <svg width={88} height={104} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Spiky White Prodigy Hair */}
           <polygon points="12,1 8,6 16,6" fill="#f8fafc" />
           <polygon points="5,3 3,9 9,8" fill="#e2e8f0" />
@@ -856,37 +734,12 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="21" width="3" height="6" fill="#020617" />
           <rect x="13" y="21" width="3" height="6" fill="#020617" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // ULQUIORRA CIFER (HERO ALLY)
-  if (heroId === 'ulquiorra_hero') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.9, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.9 }}
-          className="absolute -inset-8 rounded-full bg-emerald-500/25 blur-2xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={96}
-          height={112}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -3, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 140, 200, 0], y: [0, -20, 0, 0], rotate: [0, -25, 35, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 2 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'ulquiorra_hero':
+      return (
+        <svg width={96} height={112} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Bat Horns & Dark Wings */}
           <polygon points="7,4 3,0 8,2" fill="#020617" />
           <polygon points="17,4 21,0 16,2" fill="#020617" />
@@ -911,37 +764,12 @@ export function BleachPixelSprite({
           {/* Feet */}
           <rect x="8" y="21" width="3" height="6" fill="#020617" />
           <rect x="13" y="21" width="3" height="6" fill="#020617" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // YORUICHI SHIHOIN
-  if (heroId === 'yoruichi') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.08, 0.95], opacity: [0.5, 0.9, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.4 }}
-          className="absolute -inset-6 rounded-full bg-amber-400/30 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={88}
-          height={106}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 150, 210, 0], y: [0, -10, 0, 0], rotate: [0, 20, -15, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.6 : 0.4, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'yoruichi':
+      return (
+        <svg width={88} height={106} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Deep Purple High Ponytail */}
           <polygon points="12,1 8,6 16,6" fill="#7e22ce" />
           <polygon points="12,0 15,-4 18,3" fill="#6b21a8" />
@@ -965,37 +793,12 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="21" width="3" height="6" fill="#020617" />
           <rect x="13" y="21" width="3" height="6" fill="#020617" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // RENJI ABARAI
-  if (heroId === 'renji') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 1.7 }}
-          className="absolute -inset-6 rounded-full bg-red-600/25 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={92}
-          height={110}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 135, 195, 0], y: [0, -15, 5, 0], rotate: [0, -20, 30, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 1.7 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'renji':
+      return (
+        <svg width={92} height={110} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Crimson Spiky Ponytail */}
           <polygon points="12,1 8,6 16,6" fill="#dc2626" />
           <polygon points="12,-1 16,-5 17,2" fill="#b91c1c" />
@@ -1021,37 +824,12 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="21" width="3" height="6" fill="#f8fafc" />
           <rect x="13" y="21" width="3" height="6" fill="#f8fafc" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // SHUNSUI KYORAKU
-  if (heroId === 'shunsui') {
-    return (
-      <div className="relative flex flex-col items-center">
-        <motion.div
-          animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.5, 0.85, 0.5] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="absolute -inset-6 rounded-full bg-pink-500/25 blur-xl pointer-events-none"
-        />
-
-        <motion.svg
-          width={94}
-          height={112}
-          viewBox="0 0 24 28"
-          className="pixel-art drop-shadow-2xl relative z-10"
-          animate={
-            isHurt
-              ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-              : animState === 'idle'
-              ? { scaleY: [1, 1.03, 1], y: [0, -2, 0] }
-              : animState === 'slash_strike' || animState === 'test_attack'
-              ? { x: [0, 130, 190, 0], y: [0, -15, 0, 0], rotate: [0, -15, 25, 0] }
-              : {}
-          }
-          transition={{ duration: animState === 'idle' ? 2 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
-        >
+    case 'shunsui':
+      return (
+        <svg width={94} height={112} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
           {/* Straw Hat (Kusa-Boshi) */}
           <polygon points="12,1 2,6 22,6" fill="#d97706" />
           <rect x="6" y="5" width="12" height="2" fill="#b45309" />
@@ -1074,64 +852,198 @@ export function BleachPixelSprite({
           {/* Boots */}
           <rect x="8" y="22" width="3" height="5" fill="#78350f" />
           <rect x="13" y="22" width="3" height="5" fill="#78350f" />
-        </motion.svg>
-      </div>
-    );
-  }
+        </svg>
+      );
 
-  // GENRYUSAI SHIGEKUNI YAMAMOTO (DEFAULT / TITAN)
+    case 'yamamoto':
+    default:
+      return (
+        <svg width={98} height={116} viewBox="0 0 24 28" className="pixel-art drop-shadow-2xl relative z-10">
+          {/* Bald Head with Crossed Battle Scars */}
+          <polygon points="12,2 6,8 18,8" fill="#fed7aa" />
+          <rect x="6" y="5" width="12" height="4" fill="#fed7aa" rx="2" />
+          <line x1="9" y1="4" x2="13" y2="8" stroke="#991c1c" strokeWidth="0.8" />
+          <line x1="13" y1="4" x2="9" y2="8" stroke="#991c1c" strokeWidth="0.8" />
+
+          {/* Severe Fiery Eyes */}
+          <rect x="8" y="8" width="2" height="1.5" fill="#ea580c" />
+          <rect x="14" y="8" width="2" height="1.5" fill="#ea580c" />
+
+          {/* Majestic Long White Beard down to belt */}
+          <polygon points="8,10 16,10 12,20" fill="#f8fafc" />
+          <polygon points="9,10 15,10 12,22" fill="#e2e8f0" />
+
+          {/* Captain-Commander Haori */}
+          <rect x="5" y="12" width="14" height="10" fill="#f8fafc" rx="1" />
+          <rect x="8" y="12" width="8" height="10" fill="#020617" />
+          <line x1="5" y1="20" x2="19" y2="20" stroke="#f59e0b" strokeWidth="1" />
+
+          {/* Zanka no Tachi Scorched Blade with Solar Embers */}
+          <rect x="20" y="2" width="2" height="24" fill="#020617" />
+          <line x1="20" y1="2" x2="20" y2="26" stroke="#f97316" strokeWidth="1" />
+          <circle cx="21" cy="8" r="1.5" fill="#ea580c" className="animate-ping" />
+
+          {/* Boots */}
+          <rect x="8" y="22" width="3" height="5" fill="#020617" />
+          <rect x="13" y="22" width="3" height="5" fill="#020617" />
+        </svg>
+      );
+  }
+}
+
+// -------------------------------------------------------------
+// Pixel-Art Bleach Hero Sprite Component with Unified Animations
+// 1. Idle: Breathing animation
+// 2. Correct answer: Celebration animation
+// 3. Wrong answer: Hurt animation
+// 4. Boss battle: Attack animation
+// 5. Victory: Dance animation
+// 6. Defeat: Knockout animation
+// -------------------------------------------------------------
+export function BleachPixelSprite({
+  heroId,
+  animState = 'idle',
+  isHurt = false,
+  className = ''
+}: {
+  heroId: BleachHeroId;
+  animState?: string;
+  isHurt?: boolean;
+  className?: string;
+}) {
+  const effectiveState = resolveAnimationState(animState, isHurt);
+  const auraBg = HERO_AURA_MAP[heroId] || 'bg-amber-500/25';
+  const animMeta = CHARACTER_ANIMATIONS[effectiveState] || CHARACTER_ANIMATIONS.idle;
+
   return (
-    <div className="relative flex flex-col items-center">
+    <div className={`relative flex flex-col items-center select-none ${className}`}>
+      {/* Dynamic Spiritual Pressure Aura */}
       <motion.div
-        animate={{ scale: [0.95, 1.1, 0.95], opacity: [0.6, 0.95, 0.6] }}
-        transition={{ repeat: Infinity, duration: 1.5 }}
-        className="absolute -inset-8 rounded-full bg-orange-600/35 blur-2xl pointer-events-none"
+        animate={
+          effectiveState === 'celebration'
+            ? { scale: [1, 1.35, 1], opacity: [0.6, 1, 0.6] }
+            : effectiveState === 'dance'
+            ? { scale: [0.95, 1.25, 0.95], opacity: [0.6, 0.95, 0.6] }
+            : effectiveState === 'knockout'
+            ? { scale: 0.8, opacity: 0.2 }
+            : { scale: [0.95, 1.08, 0.95], opacity: [0.45, 0.85, 0.45] }
+        }
+        transition={{ repeat: Infinity, duration: effectiveState === 'dance' ? 1.2 : 2 }}
+        className={`absolute -inset-6 rounded-full ${auraBg} blur-xl pointer-events-none transition-all`}
       />
 
-      <motion.svg
-        width={98}
-        height={116}
-        viewBox="0 0 24 28"
-        className="pixel-art drop-shadow-2xl relative z-10"
-        animate={
-          isHurt
-            ? { x: [-16, 16, -10, 10, 0], opacity: [1, 0.25, 1] }
-            : animState === 'idle'
-            ? { scaleY: [1, 1.03, 1], y: [0, -3, 0] }
-            : animState === 'slash_strike' || animState === 'test_attack'
-            ? { x: [0, 140, 210, 0], y: [0, -25, 5, 0], rotate: [0, -30, 40, 0] }
-            : {}
-        }
-        transition={{ duration: animState === 'idle' ? 1.8 : 0.5, repeat: animState === 'idle' ? Infinity : 0 }}
+      {/* FX Layer 1: Celebration Confetti / Sparkles */}
+      {effectiveState === 'celebration' && (
+        <div className="absolute -top-7 inset-x-0 flex justify-center items-center gap-1.5 pointer-events-none z-30">
+          <motion.span
+            initial={{ y: 0, opacity: 0, scale: 0.5 }}
+            animate={{ y: [-2, -22], opacity: [0, 1, 0], scale: [0.5, 1.3, 0.7] }}
+            transition={{ duration: 0.75 }}
+            className="text-sm select-none"
+          >
+            ✨
+          </motion.span>
+          <motion.span
+            initial={{ y: 0, opacity: 0, scale: 0.5 }}
+            animate={{ y: [-4, -30], opacity: [0, 1, 0], scale: [0.5, 1.5, 0.8] }}
+            transition={{ duration: 0.75, delay: 0.08 }}
+            className="text-base select-none"
+          >
+            ⭐
+          </motion.span>
+          <motion.span
+            initial={{ y: 0, opacity: 0, scale: 0.5 }}
+            animate={{ y: [-2, -24], opacity: [0, 1, 0], scale: [0.5, 1.3, 0.7] }}
+            transition={{ duration: 0.75, delay: 0.15 }}
+            className="text-sm select-none"
+          >
+            🎉
+          </motion.span>
+        </div>
+      )}
+
+      {/* FX Layer 2: Victory Dance Musical Notes & Stardust */}
+      {effectiveState === 'dance' && (
+        <div className="absolute -top-6 inset-x-0 flex justify-center items-center gap-3 pointer-events-none z-30">
+          <motion.span
+            animate={{ y: [-4, -18, -4], x: [-4, 4, -4], opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="text-xs select-none"
+          >
+            🎵
+          </motion.span>
+          <motion.span
+            animate={{ scale: [0.8, 1.35, 0.8], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 1.1, repeat: Infinity, delay: 0.2 }}
+            className="text-sm text-amber-300 select-none"
+          >
+            ✨
+          </motion.span>
+          <motion.span
+            animate={{ y: [-2, -20, -2], x: [4, -4, 4], opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.6, repeat: Infinity, delay: 0.4, ease: 'easeInOut' }}
+            className="text-xs select-none"
+          >
+            🎶
+          </motion.span>
+        </div>
+      )}
+
+      {/* FX Layer 3: Knockout Dizzy Stars */}
+      {effectiveState === 'knockout' && (
+        <div className="absolute -top-5 left-1/4 flex items-center gap-1 pointer-events-none z-30">
+          <motion.span
+            animate={{ rotate: 360, x: [-6, 6, -6], y: [-3, 3, -3] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            className="text-xs select-none"
+          >
+            💫
+          </motion.span>
+          <motion.span
+            animate={{ rotate: -360, x: [5, -5, 5], y: [3, -3, 3] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+            className="text-xs select-none text-amber-400"
+          >
+            ⭐
+          </motion.span>
+          <motion.span
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.7, repeat: Infinity, ease: 'linear' }}
+            className="text-xs select-none"
+          >
+            💫
+          </motion.span>
+        </div>
+      )}
+
+      {/* FX Layer 4: Slash Strike Arc for Attack */}
+      {(effectiveState === 'attack' || effectiveState === 'slash_strike' || effectiveState === 'ash_of_war' || effectiveState === 'test_attack') && (
+        <motion.div
+          initial={{ opacity: 0, scaleX: 0.2, x: 0 }}
+          animate={{ opacity: [0, 1, 0], scaleX: [0.2, 1.5, 2], x: [0, 80, 150] }}
+          transition={{ duration: 0.45 }}
+          className="absolute top-1/3 left-1/2 -translate-y-1/2 pointer-events-none z-25 w-20 h-10 border-r-4 border-t-2 border-cyan-400 rounded-tr-full blur-[0.5px] shadow-[0_0_15px_#38bdf8]"
+        />
+      )}
+
+      {/* FX Layer 5: Hurt Impact Red Flash */}
+      {effectiveState === 'hurt' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: [0, 0.75, 0], scale: [0.7, 1.25, 1] }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0 bg-red-600/35 rounded-full blur-md pointer-events-none z-20"
+        />
+      )}
+
+      {/* Main Animated Sprite Container */}
+      <motion.div
+        animate={getHeroUniqueMotion(heroId, effectiveState, isHurt)}
+        transition={getHeroUniqueTransition(heroId, effectiveState, isHurt)}
+        className={`relative z-10 origin-bottom ${animMeta.cssClass}`}
       >
-        {/* Bald Head with Crossed Battle Scars */}
-        <polygon points="12,2 6,8 18,8" fill="#fed7aa" />
-        <rect x="6" y="5" width="12" height="4" fill="#fed7aa" rx="2" />
-        <line x1="9" y1="4" x2="13" y2="8" stroke="#991c1c" strokeWidth="0.8" />
-        <line x1="13" y1="4" x2="9" y2="8" stroke="#991c1c" strokeWidth="0.8" />
-
-        {/* Severe Fiery Eyes */}
-        <rect x="8" y="8" width="2" height="1.5" fill="#ea580c" />
-        <rect x="14" y="8" width="2" height="1.5" fill="#ea580c" />
-
-        {/* Majestic Long White Beard down to belt */}
-        <polygon points="8,10 16,10 12,20" fill="#f8fafc" />
-        <polygon points="9,10 15,10 12,22" fill="#e2e8f0" />
-
-        {/* Captain-Commander Haori */}
-        <rect x="5" y="12" width="14" height="10" fill="#f8fafc" rx="1" />
-        <rect x="8" y="12" width="8" height="10" fill="#020617" />
-        <line x1="5" y1="20" x2="19" y2="20" stroke="#f59e0b" strokeWidth="1" />
-
-        {/* Zanka no Tachi Scorched Blade with Solar Embers */}
-        <rect x="20" y="2" width="2" height="24" fill="#020617" />
-        <line x1="20" y1="2" x2="20" y2="26" stroke="#f97316" strokeWidth="1" />
-        <circle cx="21" cy="8" r="1.5" fill="#ea580c" className="animate-ping" />
-
-        {/* Boots */}
-        <rect x="8" y="22" width="3" height="5" fill="#020617" />
-        <rect x="13" y="22" width="3" height="5" fill="#020617" />
-      </motion.svg>
+        {renderHeroSvg(heroId)}
+      </motion.div>
     </div>
   );
 }
@@ -1144,17 +1056,29 @@ export default function CharactersView({
   unlockedHeroIds,
   selectedHeroId,
   onHeroAction,
-  onOpenArena
+  onOpenArena,
+  selectedClassId = 'warrior',
+  classLevels = DEFAULT_CLASS_LEVELS,
+  onSelectClass = () => {},
+  onUpgradeClass = () => {},
+  defaultSubTab = 'classes'
 }: {
   geo: number;
   unlockedHeroIds: BleachHeroId[];
   selectedHeroId: BleachHeroId;
   onHeroAction: (hero: BleachHeroConfig) => void;
   onOpenArena: () => void;
+  selectedClassId?: CharacterClassId;
+  classLevels?: CharacterClassLevelsMap;
+  onSelectClass?: (classId: CharacterClassId) => void;
+  onUpgradeClass?: (classId: CharacterClassId, cost: number) => void;
+  defaultSubTab?: 'classes' | 'armory';
 }) {
+  const [characterSubTab, setCharacterSubTab] = useState<'classes' | 'armory'>(defaultSubTab);
   const [inspectedHeroId, setInspectedHeroId] = useState<BleachHeroId>(selectedHeroId);
   const [animState, setAnimState] = useState<string>('idle');
   const [showLoreModal, setShowLoreModal] = useState(false);
+  const [clanFilter, setClanFilter] = useState<'all' | CharacterClassId>('all');
 
   const inspectedHero = BLEACH_ROSTER[inspectedHeroId] || BLEACH_ROSTER.ichigo;
   const isUnlocked = unlockedHeroIds.includes(inspectedHero.id);
@@ -1162,15 +1086,89 @@ export default function CharactersView({
   const canAfford = geo >= inspectedHero.geoCost;
 
   const triggerTestAttack = () => {
-    if (animState !== 'idle') return;
-    setAnimState('test_attack');
-    setTimeout(() => {
-      setAnimState('idle');
-    }, 500);
+    triggerAnimPreview('attack');
+  };
+
+  const triggerAnimPreview = (state: CharacterAnimationState) => {
+    setAnimState(state);
+    if (state !== 'idle' && state !== 'dance') {
+      const duration = state === 'knockout' ? 1400 : state === 'celebration' ? 850 : 650;
+      setTimeout(() => {
+        setAnimState('idle');
+      }, duration);
+    }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 font-mono text-slate-100 space-y-6">
+      {/* Sub-Tab Switcher: Character Classes vs Bleach Armory */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-950/95 p-2 rounded-2xl border-2 border-slate-800 shadow-2xl">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setCharacterSubTab('classes')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center space-x-2 cursor-pointer ${
+              characterSubTab === 'classes'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/25'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Crown className="w-4 h-4" />
+            <span>Character Classes (Levels 1-10)</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-md font-black ${
+                characterSubTab === 'classes'
+                  ? 'bg-slate-950/40 text-slate-950'
+                  : 'bg-slate-900 text-amber-300 border border-slate-700'
+              }`}
+            >
+              {CHARACTER_CLASSES[selectedClassId]?.name || 'Warrior'} Lv.{classLevels[selectedClassId] || 1}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setCharacterSubTab('armory')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center space-x-2 cursor-pointer ${
+              characterSubTab === 'armory'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Swords className="w-4 h-4" />
+            <span>Bleach Shinigami Armory</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-md font-black ${
+                characterSubTab === 'armory'
+                  ? 'bg-slate-950/40 text-cyan-200'
+                  : 'bg-slate-900 text-slate-400 border border-slate-700'
+              }`}
+            >
+              {unlockedHeroIds.length}/12
+            </span>
+          </button>
+        </div>
+
+        <div className="flex items-center space-x-3 text-xs pr-2">
+          <div className="flex items-center space-x-1.5 text-amber-300 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-amber-500/30">
+            <Coins className="w-4 h-4 text-amber-400" />
+            <span className="font-bold">{geo} Geo</span>
+          </div>
+        </div>
+      </div>
+
+      {characterSubTab === 'classes' ? (
+        <CharacterClassView
+          geo={geo}
+          classLevels={classLevels}
+          selectedClassId={selectedClassId}
+          onSelectClass={onSelectClass}
+          onUpgradeClass={onUpgradeClass}
+          onOpenArena={onOpenArena}
+          unlockedHeroIds={unlockedHeroIds}
+          selectedHeroId={selectedHeroId}
+          onHeroAction={onHeroAction}
+        />
+      ) : (
+        <>
       {/* Top Banner & Header */}
       <div className="bg-slate-900/90 border-2 border-amber-500/80 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -1190,7 +1188,7 @@ export default function CharactersView({
             </h1>
             <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
               Higher-tier academic tests feature aggressive Espada attacks and powerful Cero strikes. 
-              Unlock and equip resilient champions with higher heart counts, damage mitigation shields, and healing passives to survive tough evaluations.
+              Unlock and equip resilient champions with damage mitigation shields, HP vitality resilience, and healing passives to survive tough evaluations.
             </p>
           </div>
 
@@ -1222,23 +1220,31 @@ export default function CharactersView({
         
         {/* Left Column: Live Pixel Hero Stage & Combat Specs */}
         <div className="lg:col-span-5 bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xl relative overflow-hidden">
-          <div className="flex items-center justify-between z-10">
-            <span className="px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider bg-slate-950 text-amber-300 border border-amber-500/40">
-              {inspectedHero.tag}
-            </span>
+          <div className="flex items-center justify-between z-10 flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${CLAN_METADATA[inspectedHero.clanId]?.badgeBg || 'bg-slate-950 text-amber-300 border-amber-500/40'}`}>
+                <span>{CLAN_METADATA[inspectedHero.clanId]?.iconSymbol || '⚔️'}</span>
+                <span>{CLAN_METADATA[inspectedHero.clanId]?.badgeLabel || 'WARRIOR'} CLAN</span>
+              </span>
+              <span className="px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                <span>⚡</span>
+                <span>PWR {inspectedHero.powerRating}</span>
+              </span>
+            </div>
+
             {isEquipped ? (
               <span className="px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-500 flex items-center space-x-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Currently Active</span>
+                <span>Active</span>
               </span>
             ) : isUnlocked ? (
               <span className="px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">
-                Unlocked & Ready
+                Owned
               </span>
             ) : (
               <span className="px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider bg-rose-950/60 text-rose-300 border border-rose-500/40 flex items-center space-x-1">
                 <Lock className="w-3 h-3 text-rose-400" />
-                <span>{inspectedHero.geoCost} Geo to Unlock</span>
+                <span>{inspectedHero.geoCost === 0 ? 'Free' : `${inspectedHero.geoCost} Geo`}</span>
               </span>
             )}
           </div>
@@ -1254,26 +1260,106 @@ export default function CharactersView({
             <div className="mt-4 text-center z-10">
               <h2 className="text-lg font-black text-white">{inspectedHero.name}</h2>
               <p className="text-[11px] text-slate-400">{inspectedHero.division}</p>
-              <p className="text-[10px] text-cyan-400 font-semibold mt-0.5">
-                Zanpakuto: <span className="italic">{inspectedHero.zanpakuto}</span>
-              </p>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <p className="text-[10px] text-cyan-400 font-semibold">
+                  Zanpakuto: <span className="italic">{inspectedHero.zanpakuto}</span>
+                </p>
+                <span className="text-slate-600">•</span>
+                <span className="text-[10px] text-amber-400 font-black">
+                  {inspectedHero.geoCost === 0 ? 'FREE STARTER' : `${inspectedHero.geoCost} Geo`}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Interactive Hero Actions */}
-          <div className="grid grid-cols-2 gap-2 z-10">
-            <button
-              onClick={triggerTestAttack}
-              disabled={animState !== 'idle'}
-              className="py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 transition cursor-pointer"
-            >
-              <Swords className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Test Slash Attack</span>
-            </button>
+          {/* Interactive Animation Studio Controls */}
+          <div className="space-y-2 z-10 w-full">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-cyan-400" /> Animation Studio
+              </span>
+              <span className="text-[9px] text-cyan-400 font-mono font-bold bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded">
+                State: {animState.toUpperCase()}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                onClick={() => triggerAnimPreview('idle')}
+                className={`py-2 px-1 text-[10px] font-bold rounded-lg border flex flex-col items-center justify-center gap-1 transition ${
+                  animState === 'idle'
+                    ? 'bg-slate-800 border-cyan-500 text-cyan-300 shadow-[0_0_10px_rgba(56,189,248,0.3)]'
+                    : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span>🫁</span>
+                <span>Breathing</span>
+              </button>
+
+              <button
+                onClick={() => triggerAnimPreview('celebration')}
+                className={`py-2 px-1 text-[10px] font-bold rounded-lg border flex flex-col items-center justify-center gap-1 transition ${
+                  animState === 'celebration'
+                    ? 'bg-emerald-950 border-emerald-500 text-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.4)]'
+                    : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span>🎉</span>
+                <span>Celebrate</span>
+              </button>
+
+              <button
+                onClick={() => triggerAnimPreview('hurt')}
+                className={`py-2 px-1 text-[10px] font-bold rounded-lg border flex flex-col items-center justify-center gap-1 transition ${
+                  animState === 'hurt'
+                    ? 'bg-rose-950 border-rose-500 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.4)]'
+                    : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span>💥</span>
+                <span>Hurt</span>
+              </button>
+
+              <button
+                onClick={() => triggerAnimPreview('attack')}
+                className={`py-2 px-1 text-[10px] font-bold rounded-lg border flex flex-col items-center justify-center gap-1 transition ${
+                  animState === 'attack'
+                    ? 'bg-cyan-950 border-cyan-500 text-cyan-300 shadow-[0_0_10px_rgba(56,189,248,0.4)]'
+                    : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span>⚔️</span>
+                <span>Attack</span>
+              </button>
+
+              <button
+                onClick={() => triggerAnimPreview('dance')}
+                className={`py-2 px-1 text-[10px] font-bold rounded-lg border flex flex-col items-center justify-center gap-1 transition ${
+                  animState === 'dance'
+                    ? 'bg-amber-950 border-amber-500 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                    : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span>🕺</span>
+                <span>Dance</span>
+              </button>
+
+              <button
+                onClick={() => triggerAnimPreview('knockout')}
+                className={`py-2 px-1 text-[10px] font-bold rounded-lg border flex flex-col items-center justify-center gap-1 transition ${
+                  animState === 'knockout'
+                    ? 'bg-purple-950 border-purple-500 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.4)]'
+                    : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span>💫</span>
+                <span>Knockout</span>
+              </button>
+            </div>
 
             <button
               onClick={() => setShowLoreModal(true)}
-              className="py-2.5 bg-slate-950 hover:bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 transition cursor-pointer"
+              className="w-full py-2 bg-slate-950 hover:bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 transition cursor-pointer"
             >
               <BookOpen className="w-3.5 h-3.5 text-amber-400" />
               <span>Read Lore & Bankai</span>
@@ -1338,13 +1424,23 @@ export default function CharactersView({
             </div>
 
             {/* Endurance Stat Grid */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Starting Hearts</span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Vitality Pool</span>
                 <div className="flex items-center space-x-1.5 mt-1">
-                  <Heart className="w-4 h-4 fill-rose-500 text-rose-500" />
+                  <Heart className="w-4 h-4 text-rose-400 fill-rose-500" />
                   <span className="text-base font-black text-rose-400">
-                    {inspectedHero.baseHearts} Hearts
+                    10 Hearts
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-950 rounded-xl border border-amber-500/30">
+                <span className="text-[10px] text-amber-400 uppercase font-bold block">Power Rating</span>
+                <div className="flex items-center space-x-1 mt-1">
+                  <span className="text-amber-400 text-sm">⚡</span>
+                  <span className="text-base font-black text-amber-300">
+                    {inspectedHero.powerRating}
                   </span>
                 </div>
               </div>
@@ -1360,7 +1456,7 @@ export default function CharactersView({
               </div>
 
               <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Geo Reward Boost</span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">Geo Multiplier</span>
                 <div className="flex items-center space-x-1.5 mt-1">
                   <Coins className="w-4 h-4 text-amber-400" />
                   <span className="text-base font-black text-amber-300">
@@ -1399,9 +1495,9 @@ export default function CharactersView({
             </div>
           </div>
 
-          {/* Roster Grid (All 6 Bleach Champions) */}
+          {/* Roster Grid (All Bleach Champions with Clan & Power Filter) */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-xl">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-300">
                 Select a Shinigami to Inspect / Purchase:
               </h3>
@@ -1410,12 +1506,48 @@ export default function CharactersView({
               </span>
             </div>
 
+            {/* Clan Filter Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px]">
+              <button
+                onClick={() => setClanFilter('all')}
+                className={`px-2.5 py-1 rounded-lg font-black transition cursor-pointer shrink-0 ${
+                  clanFilter === 'all'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                All (12)
+              </button>
+              {(Object.keys(CLAN_METADATA) as CharacterClassId[]).map((cId) => {
+                const cMeta = CLAN_METADATA[cId];
+                const count = (Object.values(BLEACH_ROSTER) as BleachHeroConfig[]).filter(h => h.clanId === cId).length;
+                const active = clanFilter === cId;
+                return (
+                  <button
+                    key={cId}
+                    onClick={() => setClanFilter(cId)}
+                    className={`px-2.5 py-1 rounded-lg font-black transition cursor-pointer flex items-center gap-1 shrink-0 ${
+                      active
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md shadow-amber-500/20'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    <span>{cMeta.iconSymbol}</span>
+                    <span>{cMeta.badgeLabel} ({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {(Object.keys(BLEACH_ROSTER) as BleachHeroId[]).map((heroKey) => {
+              {(Object.keys(BLEACH_ROSTER) as BleachHeroId[])
+                .filter((heroKey) => clanFilter === 'all' || BLEACH_ROSTER[heroKey].clanId === clanFilter)
+                .map((heroKey) => {
                 const hero = BLEACH_ROSTER[heroKey];
                 const isSelected = inspectedHero.id === hero.id;
                 const isHeroUnlocked = unlockedHeroIds.includes(hero.id);
                 const isHeroEquipped = selectedHeroId === hero.id;
+                const clanMeta = CLAN_METADATA[hero.clanId];
 
                 return (
                   <div
@@ -1434,6 +1566,15 @@ export default function CharactersView({
                     )}
 
                     <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border flex items-center gap-0.5 ${clanMeta?.badgeBg || 'bg-slate-900 text-slate-400 border-slate-700'}`}>
+                          <span>{clanMeta?.iconSymbol}</span>
+                          <span>{clanMeta?.badgeLabel}</span>
+                        </span>
+                        <span className="text-[9px] font-bold text-amber-300">
+                          ⚡{hero.powerRating}
+                        </span>
+                      </div>
                       <div className="flex items-center space-x-1.5">
                         <span className="text-xs font-black text-white truncate">{hero.name}</span>
                       </div>
@@ -1443,9 +1584,9 @@ export default function CharactersView({
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px]">
-                      <span className="text-rose-400 font-bold flex items-center space-x-0.5">
-                        <Heart className="w-2.5 h-2.5 fill-rose-500" />
-                        <span>{hero.baseHearts}H</span>
+                      <span className="text-rose-400 font-bold flex items-center space-x-1">
+                        <Heart className="w-2.5 h-2.5 text-rose-400 fill-rose-500" />
+                        <span>10 Hearts</span>
                       </span>
 
                       {isHeroUnlocked ? (
@@ -1455,7 +1596,7 @@ export default function CharactersView({
                         </span>
                       ) : (
                         <span className="text-amber-400 font-black">
-                          {hero.geoCost} G
+                          {hero.geoCost === 0 ? 'FREE' : `${hero.geoCost} Geo`}
                         </span>
                       )}
                     </div>
@@ -1523,6 +1664,8 @@ export default function CharactersView({
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
